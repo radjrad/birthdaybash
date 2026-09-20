@@ -45,8 +45,8 @@ input:focus, textarea:focus, select:focus{outline:2px solid var(--gold); outline
 .add:disabled{opacity:.4; cursor:default}
 
 .seg{display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-bottom:14px}
-.seg label{cursor:pointer}
-.seg input{position:absolute; opacity:0; pointer-events:none}
+.seg label{cursor:pointer; position:relative}
+.seg input{position:absolute; left:0; top:0; width:1px; height:1px; padding:0; border:0; opacity:0; pointer-events:none}
 .seg span{display:flex; flex-direction:column; gap:2px; padding:12px; border-radius:12px; border:1px solid var(--line); background:var(--panel2); font-weight:500; font-size:13px; color:var(--dim); height:100%}
 .seg b{color:var(--ink); font-size:16px}
 .seg input:checked + span{border-color:var(--gold); box-shadow:0 0 0 2px var(--gold) inset}
