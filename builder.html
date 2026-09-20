@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Build a Bash · Birthday Bash</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b1626">
+<link rel="stylesheet" href="css/builder.css">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="./">🎂 Birthday Bash</a>
+  <nav><a href="play.html?party=demo" target="_blank" rel="noopener">Play the demo</a><button class="link" id="saveProject" type="button">Save project</button><label class="link">Load project<input id="loadProject" type="file" accept=".json,application/json" hidden></label><button class="link danger" id="resetAll" type="button">Start over</button></nav>
+</header>
+
+<main>
+  <h1>Build a bash</h1>
+  <p class="lede">Tell it who the party is for. Claude writes the roast, paints the backdrops and reskins the mini-games. Everything you type stays in this browser until you export.</p>
+
+  <section class="card" id="s-person">
+    <h2><span class="n">1</span> The birthday person</h2>
+    <div class="grid g4">
+      <label>Name<input id="f-name" placeholder="Shannon" autocomplete="off"></label>
+      <label>Turning<input id="f-age" type="number" min="1" max="120" placeholder="37"></label>
+      <label>Pronouns <small>optional</small><select id="f-pronouns"><option value="">Write around them</option><option>he/him</option><option>she/her</option><option>they/them</option></select></label>
+      <label>Party date <small>optional</small><input id="f-partyDate" type="date"></label>
+    </div>
+    <div class="grid g2">
+      <label>Who are they to you?<input id="f-relation" placeholder="My dad. Navy vet, hiker, grill perfectionist."></label>
+      <label>Who is this from? <small>signs the last screen</small><input id="f-from" placeholder="Jared, Molly and the whole crew"></label>
+    </div>
+  </section>
+
+  <section class="card" id="s-chapters">
+    <h2><span class="n">2</span> Chapters <small>2 to 4 eras or themes of their life</small></h2>
+    <p class="hint">A title and whatever you remember: places, names, habits, the story everyone tells. The more specific the notes, the better the jokes.</p>
+    <div id="chapters" class="rows"></div>
+    <button class="add" id="addChapter" type="button">+ Add a chapter</button>
+  </section>
+
+  <section class="card" id="s-trivia">
+    <h2><span class="n">3</span> Trivia <small>the room shouts the answers</small></h2>
+    <p class="hint">Just the question and the right answer. Claude writes the wrong answers and the punchline, and puts each question in the chapter it fits.</p>
+    <div id="trivia" class="rows"></div>
+    <button class="add" id="addTrivia" type="button">+ Add a question</button>
+  </section>
+
+  <section class="card" id="s-isms">
+    <h2><span class="n">4</span> -isms <small>the things they always say</small></h2>
+    <p class="hint">These become running gags: wrong-answer buzzers, joke options, button labels, mini-game lines.</p>
+    <div id="isms" class="rows"></div>
+    <button class="add" id="addIsm" type="button">+ Add an -ism</button>
+  </section>
+
+  <section class="card" id="s-tone">
+    <h2><span class="n">5</span> How hard do we roast?</h2>
+    <div class="seg" id="f-roast" role="radiogroup">
+      <label><input type="radio" name="roast" value="gentle"><span><b>Gentle</b>Grandkids are in the room</span></label>
+      <label><input type="radio" name="roast" value="medium" checked><span><b>Medium</b>A best-man speech</span></label>
+      <label><input type="radio" name="roast" value="spicy"><span><b>Spicy</b>A friend group with no filter</span></label>
+    </div>
+    <div class="grid g2">
+      <label>Off-limits <small>never joked about, never hinted at</small><textarea id="f-offLimits" rows="2" placeholder="His height. The divorce. The nickname he hates (okay, once)."></textarea></label>
+      <label>Inside jokes that must make it in <small>optional</small><textarea id="f-mustInclude" rows="2" placeholder="The Pickle. The time he drove to the wrong airport."></textarea></label>
+    </div>
+    <p class="hint">Whatever the dial says, the last two screens are always sincere.</p>
+  </section>
+
+  <section class="card" id="s-photos">
+    <h2><span class="n">6</span> Photos <small>up to 16</small></h2>
+    <p class="hint">Drop them all in. A few words on each ("age 8, county fair") helps a lot. Photos are shrunk in your browser and only leave it if you let Claude look at them.</p>
+    <label class="drop" id="drop"><input id="photoInput" type="file" accept="image/*" multiple hidden><span>Drop photos here or <u>choose files</u></span></label>
+    <div id="photos" class="photos"></div>
+  </section>
+
+  <section class="card" id="s-minis">
+    <h2><span class="n">7</span> Mini-games <small>one plays after each chapter</small></h2>
+    <p class="hint">Ten games, always the same mechanics; each party just gets new words and emoji. Pick per chapter above, or leave it to Claude. Try any of them with its stock skin:</p>
+    <div id="catalog" class="catalog"></div>
+  </section>
+
+  <section class="card" id="s-messages">
+    <h2><span class="n">8</span> Notes from the room <small>optional</small></h2>
+    <p class="hint">Short messages from guests who want a line in the show. These are shown exactly as written, just before the toast.</p>
+    <div id="messages" class="rows"></div>
+    <button class="add" id="addMessage" type="button">+ Add a note</button>
+  </section>
+
+  <section class="card" id="s-claude">
+    <h2><span class="n">9</span> Write it</h2>
+    <div class="grid g2">
+      <label>Your Anthropic API key <small>from console.anthropic.com</small><input id="f-key" type="password" placeholder="sk-ant-..." autocomplete="off" spellcheck="false"></label>
+      <label>Model<select id="f-model"></select></label>
+    </div>
+    <div class="checks">
+      <label><input type="checkbox" id="f-remember"> Remember the key in this browser</label>
+      <label><input type="checkbox" id="f-vision" checked> Let Claude see the photos (better captions and placement)</label>
+      <label><input type="checkbox" id="f-art" checked> Paint a custom backdrop and badge for every chapter</label>
+    </div>
+    <p class="hint">The key is sent only to api.anthropic.com, straight from this page. A full show costs roughly the price of a coffee on Opus, less on Sonnet.</p>
+    <div class="actions">
+      <button class="primary" id="generate" type="button">✨ Write it with Claude</button>
+      <button id="quick" type="button">Quick draft without Claude</button>
+    </div>
+    <details class="paste">
+      <summary>No API key? Use your Claude app instead</summary>
+      <ol>
+        <li><button id="copyPrompt" type="button">Copy the prompt</button> and paste it into a chat at claude.ai.</li>
+        <li>Paste Claude's JSON answer here: <textarea id="pasteBox" rows="4" placeholder='{"title": ...}' spellcheck="false"></textarea></li>
+        <li><button id="usePaste" type="button">Use this</button> <small>Backdrops use the built-in scenes this way.</small></li>
+      </ol>
+    </details>
+    <pre id="log" class="log" hidden></pre>
+  </section>
+
+  <section class="card" id="s-review" hidden>
+    <h2><span class="n">10</span> Preview, tweak, export</h2>
+    <div class="previewbar">
+      <label>Jump to<select id="jump"></select></label>
+      <button id="reload" type="button">Restart preview</button>
+      <a id="openPreview" href="play.html?draft" target="_blank" rel="noopener">Open full screen ↗</a>
+      <span class="spacer"></span>
+      <button class="primary" id="export" type="button">⬇ Export the show (one HTML file)</button>
+    </div>
+    <div class="stagewrap"><iframe id="preview" title="Show preview" allow="fullscreen"></iframe></div>
+    <div id="artbar" class="artbar"></div>
+    <div id="pinpick" class="pinpick" hidden>
+      <h3>Pin game: click the top of their head</h3>
+      <div class="pinframe"><img id="pinImg" alt=""><span id="pinDot"></span></div>
+    </div>
+    <details>
+      <summary>Edit every word (JSON)</summary>
+      <p class="hint">This is the whole show. Change any text, swap a mini-game <code>kind</code>, fix a caption, then Apply.</p>
+      <textarea id="json" rows="22" spellcheck="false"></textarea>
+      <div class="actions"><button id="applyJson" type="button">Apply changes</button><span id="jsonMsg" class="hint"></span></div>
+    </details>
+    <p class="hint">The exported file holds everything, photos included, and runs offline: AirDrop it, open it on the laptop plugged into the TV, or drop it in a GitHub Pages repo as <code>index.html</code> so guests can play on their phones.</p>
+  </section>
+</main>
+
+<footer>Built on the chuck65 / shannon37 engine. <a href="https://github.com/radjrad/birthdaybash">Source</a></footer>
+
+<script src="js/scenes.js"></script>
+<script src="js/minigames.js"></script>
+<script src="js/party.js"></script>
+<script src="js/claude.js"></script>
+<script src="js/builder.js"></script>
+</body>
+</html>
