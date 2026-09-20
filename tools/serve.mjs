@@ -16,7 +16,6 @@ import { tmpdir, homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 const root = join(fileURLToPath(new URL('.', import.meta.url)), '..');
-const port = +process.argv[2] || 8766;
 const types = { '.html':'text/html; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.mjs':'text/javascript; charset=utf-8', '.css':'text/css; charset=utf-8', '.json':'application/json; charset=utf-8', '.svg':'image/svg+xml', '.jpg':'image/jpeg', '.jpeg':'image/jpeg', '.png':'image/png', '.ico':'image/x-icon' };
 
 /* ---------- finding and running the CLI ---------- */
@@ -86,7 +85,7 @@ function readBody(req, limit) {
   return new Promise((resolve, reject) => { const chunks = []; let n = 0; req.on('data', c => { n += c.length; if (n > limit) { reject(new Error('too large')); req.destroy(); } else chunks.push(c); }); req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8'))); req.on('error', reject); });
 }
 
-createServer(async (req, res) => {
+const handler = async (req, res) => {
   const url = new URL(req.url, 'http://x');
   if (url.pathname.startsWith('/api/')) {
     const host = String(req.headers.host || '');
@@ -107,4 +106,10 @@ createServer(async (req, res) => {
     const body = await readFile(file);
     res.writeHead(200, { 'Content-Type': types[extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-store' }).end(body);
   } catch { res.writeHead(404, { 'Content-Type': 'text/plain' }).end('Not found'); }
-}).listen(port, '127.0.0.1', () => console.log(`Birthday Bash on http://localhost:${port}/builder.html\nClaude subscription bridge: ${CLI}`));
+};
+/* If the port is taken (another copy of this server, or a preview), step up to the next free one. */
+let port = +process.argv[2] || 8766;
+const server = createServer(handler);
+server.on('error', (e) => { if (e.code === 'EADDRINUSE' && port < 8776) { port++; server.listen(port, '127.0.0.1'); } else throw e; });
+server.on('listening', () => console.log(`Birthday Bash on http://localhost:${port}/builder.html\nClaude subscription bridge: ${CLI}`));
+server.listen(port, '127.0.0.1');
