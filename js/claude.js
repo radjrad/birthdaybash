@@ -67,7 +67,7 @@ Each chapter:
 - scene.preset: fallback backdrop if custom art is unavailable: hills, city, mountains, beach, room (any interior), night, party.
 - arrival: text, photo (id), caption.
 - choice: a scenario question with 3-4 options; at least one option should be an -ism or an obvious lie about them. Every reaction lands a different joke.
-- trivia: use the host's questions, placed in the chapter they belong to, keeping the host's correct answer as written. Supply 4 options (a plausible wrong one, a funny one, often an -ism) and put the right one at a varying index; "answer" is its zero-based index. reaction = the payoff after the right answer. If the host gave fewer questions than chapters, write your own from the host's notes, only about facts the notes state. Every chapter needs at least one.
+- trivia: use the host's questions for that chapter, in order, keeping the host's correct answer as written. Supply 4 options (a plausible wrong one, a funny one, often an -ism) and put the right one at a varying index; "answer" is its zero-based index. reaction = the payoff after the right answer. If the host gave fewer questions than chapters, write your own from the host's notes, only about facts the notes state. Every chapter needs at least one.
 - photos: up to 3 more {id, caption} shown beside the badge.
 - mini: one mini-game skin (see MINI-GAMES). Do not repeat a kind within a show. Match the game to the chapter.
 finale: heading, lines (3 short sincere paragraphs naming what is true across all the chapters), final (the one-line wish), button (like "Raise a glass"), toast (the words on the toast screen).
@@ -92,9 +92,11 @@ function briefText(b) {
   if (b.offLimits) L.push(`OFF-LIMITS (never mention, never allude to): ${b.offLimits}`);
   if (b.mustInclude) L.push(`INSIDE JOKES / MUST INCLUDE: ${b.mustInclude}`);
   L.push('', `CHAPTERS (${b.chapters.length}):`);
-  b.chapters.forEach((c, i) => L.push(`${i + 1}. "${c.title}"${c.mini ? ` [mini-game chosen by host: ${c.mini}]` : ''}\n   Notes: ${c.notes || '(none given: keep this chapter light on specifics)'}`));
-  L.push('', 'TRIVIA FROM THE HOST:');
-  if (b.trivia.length) b.trivia.forEach((t, i) => L.push(`${i + 1}. Q: ${t.q}\n   Correct answer: ${t.a}${t.wrong ? `\n   Wrong answers the host suggests: ${t.wrong}` : ''}`)); else L.push('(none: write them from the chapter notes)');
+  b.chapters.forEach((c, i) => {
+    L.push(`${i + 1}. "${c.title}"${c.mini ? ` [mini-game chosen by host: ${c.mini}]` : ''}\n   Notes: ${c.notes || '(none given: keep this chapter light on specifics)'}`);
+    const tv = c.trivia || [];
+    if (tv.length) tv.forEach((t, k) => L.push(`   Trivia ${k + 1}: Q: ${t.q}\n     Correct answer: ${t.a}${t.wrong ? `\n     Wrong answers the host suggests: ${t.wrong}` : ''}`)); else L.push('   Trivia: none given; write one from the notes');
+  });
   L.push('', '-ISMS (things they always say):');
   if (b.isms.length) b.isms.forEach(s => L.push(`- "${s.text}"${s.when ? `  (when: ${s.when})` : ''}`)); else L.push('(none given)');
   L.push('', 'PHOTOS:');
@@ -177,7 +179,7 @@ async function askBridge({ model, system, content, schema, onProgress }) {
   if (schema) system += `\n\nThe JSON object has exactly this shape (every field present; "" or [] when unused):\n${JSON.stringify(skeleton(schema))}\nReply with the JSON object only.`;
   const t0 = Date.now(), tick = onProgress ? setInterval(() => onProgress(Math.round((Date.now() - t0) / 1000), 'seconds'), 1000) : null;
   try {
-    const r = await fetch('api/claude', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ model, system, prompt, images }) });
+    const r = await fetch('api/claude', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ model, system, prompt, images, schema }) });
     const d = await r.json().catch(() => ({ error:'The local bridge sent back something unreadable.' }));
     if (d.error) throw new Error(d.error);
     if (!d.text || !d.text.trim()) throw new Error('Claude returned an empty answer. Try again.');
@@ -205,8 +207,24 @@ function parseJSON(text) {
   if (a < 0 || b <= a) throw new Error('No JSON object found in that text.');
   t = t.slice(a, b + 1);
   try { return JSON.parse(t); } catch (e1) {
-    try { return JSON.parse(t.replace(/[“”]/g, '"').replace(/,\s*([}\]])/g, '$1')); } catch (e2) { throw new Error('That JSON did not parse: ' + e1.message); }
+    try { return JSON.parse(repairJSON(t)); } catch (e2) { throw new Error('That JSON did not parse: ' + e1.message); }
   }
+}
+/* Fixes the mistakes models actually make: curly quotes, trailing commas, raw newlines inside strings,
+   and an unescaped " inside a string (kept as \" when the next real character is not , } ] or :). */
+function repairJSON(t) {
+  t = t.replace(/[\u201c\u201d]/g, '"').replace(/[\u2018\u2019]/g, "'");
+  let out = '', inStr = false;
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i];
+    if (!inStr) { if (c === '"') inStr = true; out += c; continue; }
+    if (c === '\\') { out += c + (t[i + 1] || ''); i++; continue; }
+    if (c === '\n') { out += '\\n'; continue; }
+    if (c === '\t') { out += '\\t'; continue; }
+    if (c === '"') { const next = t.slice(i + 1).match(/^\s*([\s\S])/); if (!next || /[,}\]:]/.test(next[1])) { inStr = false; out += c; } else out += '\\"'; continue; }
+    out += c;
+  }
+  return out.replace(/,\s*([}\]])/g, '$1');
 }
 function parseLayers(text) {
   const grab = (tag) => { const m = new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`, 'i').exec(text); return m ? m[1].trim() : ''; };

@@ -54,12 +54,13 @@ function friendly(msg) {
   return 'Claude Code reported: ' + String(msg).slice(0, 400);
 }
 
-async function callClaude({ system, prompt, model, images }) {
+async function callClaude({ system, prompt, model, images, schema }) {
   const dir = await mkdtemp(join(tmpdir(), 'birthdaybash-'));
   try {
     await writeFile(join(dir, 'system.txt'), String(system || ''));
     const args = ['-p', '--output-format', 'json', '--no-session-persistence', '--system-prompt-file', join(dir, 'system.txt')];
     if (MODELS.has(model)) args.push('--model', model);
+    if (schema && typeof schema === 'object') args.push('--json-schema', JSON.stringify(schema));   /* the CLI then guarantees parseable, schema-valid JSON */
     let text = String(prompt || '');
     const pics = (Array.isArray(images) ? images : []).filter(im => im && /^[\w-]{1,20}$/.test(im.id) && typeof im.data === 'string').slice(0, 16);
     if (pics.length) {                               /* photos go in as files the CLI may Read, and nothing else */
@@ -71,8 +72,10 @@ async function callClaude({ system, prompt, model, images }) {
     let data = null; try { data = JSON.parse(r.out); } catch (e) {}
     if (Array.isArray(data)) data = data.find(x => x && x.type === 'result') || null;
     if (!data) return { error: friendly(r.err || r.out || `exit code ${r.code}`) };
-    if (data.is_error || typeof data.result !== 'string') return { error: friendly(data.result || r.err || 'unknown error') };
-    return { text: data.result, usage: data.usage || null, cost: data.total_cost_usd };
+    if (data.is_error) return { error: friendly(data.result || r.err || 'unknown error') };
+    const answer = data.structured_output && typeof data.structured_output === 'object' ? JSON.stringify(data.structured_output) : data.result;
+    if (typeof answer !== 'string') return { error: friendly(r.err || 'no result') };
+    return { text: answer, usage: data.usage || null, cost: data.total_cost_usd };
   } finally { rm(dir, { recursive: true, force: true }).catch(() => {}); }
 }
 

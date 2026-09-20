@@ -88,6 +88,7 @@ const BUILD = {
       <h1 class="giant">${esc(t.title)}</h1>
       <div class="sub">${esc(t.subtitle)}</div>
       <p class="lead">${nl2br(t.lead)}</p>
+      ${BB.mp ? BB.mp.titleHTML() : ''}
     </div>
     <div class="actions"><button class="btn primary big" data-action="next">${esc(t.button)}</button></div>
     <div class="hints">F = fullscreen · R = restart · ♪ sound toggle is top right</div>`;
@@ -147,7 +148,7 @@ const BUILD = {
       <div class="note"></div>
       <div class="playfield">${m.build(T, ctx)}</div>
     </div>
-    <div class="actions">${actions}</div>`;
+    <div class="actions">${actions}<button class="btn ghostbtn skip" data-action="next">Skip game →</button></div>`;
   },
 
   messages: s => `
@@ -193,8 +194,9 @@ function miniApi(el) {
       const stepBtn = el.querySelector('[data-action="step"]');
       if (stepBtn) { stepBtn.textContent = 'Continue →'; stepBtn.dataset.action = 'next'; stepBtn.classList.add('continue'); }
       el.querySelectorAll('.actions [data-action="next"]').forEach(b => b.hidden = false);
-      el.querySelectorAll('.actions .pad').forEach(p => p.hidden = true);
+      el.querySelectorAll('.actions .pad, .actions .skip').forEach(p => p.hidden = true);
       setHi(0); showOnPhone(note);
+      if (BB.mp && cur) BB.mp.finished(cur.screen);
     },
     reset(txt, doText) { note.textContent = txt || ''; note.classList.remove('big'); el.querySelector('.do').textContent = doText; el.querySelectorAll('.actions [data-action="next"]').forEach(b => b.hidden = true); },
   };
@@ -235,6 +237,7 @@ const ACT = {
     if (action !== 'pick') return;
     if (+btn.dataset.i === s.trivia.answer) {
       el.querySelector('.primary').hidden = false;
+      if (BB.mp) BB.mp.answered(s, el.querySelectorAll('.opt.wrong').length + 1);
       if (s.award) {
         el.querySelector('.qwrap').hidden = true;
         el.querySelector('.do').textContent = `Badge earned. ${PRESS} Continue.`;
@@ -259,7 +262,7 @@ const ACT = {
       const note = el.querySelector('.note');
       if (r.note !== undefined) note.textContent = r.note;
       note.classList.toggle('big', !!r.bigNote);
-      if (r.done) { btn.textContent = 'Continue →'; btn.dataset.action = 'next'; btn.classList.add('continue'); el.querySelector('.do').textContent = `${PRESS} Continue.`; }
+      if (r.done) { btn.textContent = 'Continue →'; btn.dataset.action = 'next'; btn.classList.add('continue'); el.querySelector('.do').textContent = `${PRESS} Continue.`; el.querySelectorAll('.actions .skip').forEach(b => b.hidden = true); if (BB.mp) BB.mp.finished(s); }
       else if (r.label) btn.textContent = r.label;
       return;
     }
@@ -309,6 +312,7 @@ function go(i) {
   if (screen.type !== 'closing') BB.Confetti.ambient(false);
   updateHUD(screen);
   setHi(0);
+  if (BB.mp) BB.mp.onScreen(screen, i);
   try { window.parent !== window && window.parent.postMessage({ bb:'screen', id:screen.id, i, total:screens.length }, '*'); } catch (e) {}
 }
 function restart() { state.earned.clear(); go(0); }
@@ -343,6 +347,7 @@ function act(action, btn) {
   BB.Sound.unlock();
   if (action === 'next') return go(state.i + 1);
   if (action === 'restart') return restart();
+  if (action.startsWith('mp-')) return BB.mp && BB.mp.act(action, cur.el);
   const h = ACT[cur.screen.type];
   if (h) h(action, btn, cur.screen, cur.el, cur.local);
 }
@@ -374,11 +379,13 @@ function wire() {
     if (b.blur) b.blur();                           /* keep native focus off buttons so Enter/Space only go through our handler */
     act(b.dataset.action, b);
   });
+  stage.addEventListener('submit', e => { const f = e.target.closest('form[data-action]'); if (!f) return; e.preventDefault(); act(f.dataset.action, f); });
   document.addEventListener('keydown', e => {
     if (e.metaKey || e.ctrlKey || e.altKey || e.repeat) return;   /* a held key must not race through screens */
+    if (e.target.matches('input, textarea')) return;              /* typing a room code */
     const k = e.key;
     if (k === 'f' || k === 'F') { toggleFullscreen(); return; }
-    if (k === 'r' || k === 'R') { restart(); return; }
+    if (k === 'r' || k === 'R') { if (!(BB.mp && BB.mp.following)) restart(); return; }
     if (k === 's' || k === 'S') { toggleSound(); return; }
     if (performance.now() < lockUntil) { e.preventDefault(); return; }
     if (cur.local.onKey && cur.local.onKey(k)) { e.preventDefault(); BB.Sound.unlock(); return; }
@@ -501,9 +508,10 @@ BB.start = function (rawParty, opts = {}) {
   buildTrail(party.chapters.length);
   BB.Confetti = makeConfetti();
   wire();
-  BB.party = party; BB.screens = screens; BB.go = go;
+  BB.party = party; BB.screens = screens; BB.go = go; BB.current = () => cur;
   const want = opts.screen ? screens.findIndex(s => s.id === opts.screen) : -1;
   go(want >= 0 ? want : 0);
+  if (BB.mp) BB.mp.autostart();
 };
 
 BB.fatal = function (msg) { document.body.innerHTML = `<div class="fatal"><div><p>${esc(msg)}</p><p><a href="./">Back to Birthday Bash</a></p></div></div>`; };

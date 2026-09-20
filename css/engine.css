@@ -74,7 +74,8 @@ body.closing #sound{display:none}
 .scene .shade{position:absolute; inset:0; background:linear-gradient(to bottom, rgba(0,0,0,.35), rgba(0,0,0,.72))}
 .photo-scene img.kb{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; animation:kb 22s ease-in-out infinite alternate}
 
-.content{position:relative; z-index:1; flex:1 1 auto; min-height:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:3rem 3rem .6rem; gap:.7rem}
+.content{position:relative; z-index:1; flex:1 1 auto; min-height:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:3rem 3rem .6rem; gap:.7rem; overflow-y:auto; overflow-x:hidden}
+.content > *{flex-shrink:0}
 .screen.title-photo .content{margin-left:36vw; padding-right:2rem}
 .screen.title-photo .lead{max-width:32rem}
 .content.center{text-align:center}
@@ -318,10 +319,10 @@ p{margin:0}
 .entry .msg{font-size:1.05rem; line-height:1.5rem; font-style:italic; font-weight:700}
 
 /* ---------- Finale: the sincere bit, the badges, the toast ---------- */
-.logwrap{display:flex; align-items:center; justify-content:center; gap:2.5rem; width:100%}
-.log{max-width:38rem}
-.log p{font-size:1.25rem; line-height:1.5; margin-bottom:.6rem}
-.log p.final{font-size:1.6rem; font-weight:900; color:var(--accent)}
+.logwrap{display:flex; align-items:center; justify-content:center; gap:2rem; width:100%}
+.log{max-width:44rem}
+.log p{font-size:1.1rem; line-height:1.4; margin-bottom:.5rem}
+.log p.final{font-size:1.4rem; font-weight:900; color:var(--accent)}
 .badgerow{display:flex; flex-wrap:wrap; gap:1rem; justify-content:center; margin-top:.4rem}
 .filmstrip{display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:.7rem; max-width:30vw}
 .filmstrip img{height:22vh; width:auto; border:.3rem solid #fbf7ef; box-shadow:0 .6rem 1.4rem rgba(0,0,0,.6); background:#111}
@@ -338,15 +339,39 @@ p{margin:0}
 .toast.show .cheers{animation:pop .5s .9s ease-out forwards}
 
 /* ---------- Closing ---------- */
-.closing{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.6rem; z-index:1; text-align:center; padding:0 2rem}
+.closing{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.6rem; z-index:1; text-align:center; padding:1rem 2rem; overflow-y:auto}
 .closing .frame{padding:.6rem; background:#fbf7ef; box-shadow:0 1.2rem 3rem rgba(0,0,0,.65)}
-.closing img{display:block; height:58vh; width:auto; max-width:80vw; object-fit:cover}
+.closing img{display:block; height:52vh; width:auto; max-width:80vw; object-fit:cover}
 .closing .cake{font-size:12rem; line-height:1}
 .closing h1{font-size:3rem; margin:0; text-shadow:0 .25rem 0 rgba(0,0,0,.4), 0 .6rem 1.4rem rgba(0,0,0,.6)}
 .closing .sub2{font-size:1.5rem; font-weight:900; color:var(--accent); text-shadow:0 2px 8px #000; max-width:52rem}
 .restart-link{position:absolute; right:1rem; bottom:.7rem; font-size:.6rem; opacity:.55; color:#fff; text-decoration:underline; cursor:pointer; z-index:3}
 
 #confetti{position:fixed; inset:0; z-index:30; pointer-events:none}
+
+/* ---------- Party mode: play together ---------- */
+.together{display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; justify-content:center; margin-top:.6rem; font-size:.9rem}
+.together .kicker{font-size:.75rem}
+.together .btn{min-height:2.2rem; font-size:.85rem; padding:.3rem .9rem}
+.joinform{display:flex; gap:.4rem}
+.joinform input{width:6.5rem; font:inherit; font-size:1rem; font-weight:900; letter-spacing:.2em; text-transform:uppercase; text-align:center; padding:.3rem .5rem; border-radius:.6rem; border:.14rem solid rgba(255,255,255,.6); background:rgba(0,0,0,.5); color:#fff}
+.together-note{flex:1 0 100%; text-align:center; font-size:.85rem; color:var(--accent); min-height:1.1rem}
+.actions .btn.skip{min-height:2.2rem; font-size:.8rem; padding:.3rem .8rem; opacity:.8}
+body.following [data-action=next], body.following .restart-link, body.following .actions .btn.skip{display:none !important}
+#mp{position:fixed; left:1rem; bottom:1rem; z-index:26; width:17rem; max-width:calc(100vw - 2rem); font-size:.8rem; line-height:1.3}
+#mp .mp-tab{display:none}
+#mp .mp-body{background:rgba(8,12,24,.86); border:.12rem solid rgba(255,255,255,.25); border-radius:.8rem; padding:.6rem .8rem; box-shadow:0 .5rem 1.4rem rgba(0,0,0,.5); display:flex; flex-direction:column; gap:.35rem}
+#mp .mp-h{font-weight:900; text-transform:uppercase; letter-spacing:.06em; font-size:.75rem; color:var(--accent)}
+#mp .mp-dim{opacity:.7; font-size:.8rem}
+#mp .mp-code{font-size:.8rem; border-bottom:1px solid rgba(255,255,255,.2); padding-bottom:.35rem}
+#mp .mp-big{font-size:1.4rem; letter-spacing:.2em; color:var(--accent); display:block}
+#mp .mp-board{margin:0; padding:0 0 0 1.4rem; font-variant-numeric:tabular-nums}
+#mp .mp-board li{display:flex; justify-content:space-between; gap:.6rem}
+#mp .mp-board li:first-child{color:var(--accent)}
+#mp .mp-btn{align-self:flex-start; font:inherit; font-weight:800; font-size:.8rem; padding:.3rem .7rem; border-radius:.5rem; border:.12rem solid rgba(255,255,255,.5); background:transparent; color:#fff; cursor:pointer}
+#mp a{cursor:pointer; text-decoration:underline}
+.mp-skipped{max-width:24rem; text-align:center}
+body.closing #mp{display:none}
 .fatal{position:fixed; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; padding:2rem; font-size:1.2rem; z-index:50; background:#0d1b2e}
 .fatal a{color:#ffd98a}
 
@@ -532,6 +557,12 @@ p{margin:0}
   .closing h1{ font-size:2rem }
   .closing .sub2{ font-size:1.15rem }
   .restart-link{ position:fixed; font-size:.75rem; opacity:.7; padding:.5rem }
+  /* Party mode on a phone: a tab in the corner that opens the panel */
+  #mp{ left:auto; right:.6rem; bottom:calc(5.2rem + env(safe-area-inset-bottom)); width:auto; max-width:calc(100vw - 1.2rem) }
+  #mp .mp-tab{ display:block; margin-left:auto; font:inherit; font-weight:900; font-size:.9rem; padding:.45rem .8rem; border-radius:2rem; border:.12rem solid rgba(255,255,255,.5); background:rgba(8,12,24,.9); color:#fff; box-shadow:0 .4rem 1rem rgba(0,0,0,.5) }
+  #mp .mp-body{ display:none; width:min(20rem, calc(100vw - 1.2rem)); margin-top:.4rem }
+  #mp.open .mp-body{ display:flex }
+  .together{ font-size:1rem } .together .btn{ min-height:2.8rem; font-size:.95rem }
 }
 /* Short landscape phones: the TV layout at a readable minimum size */
 @media (max-height: 480px) and (orientation: landscape){

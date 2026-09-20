@@ -1,13 +1,13 @@
 /* BIRTHDAY BASH — builder + landing page styles */
-:root{ --bg:#0b1626; --panel:#13233b; --panel2:#1a2f4e; --line:rgba(255,255,255,.14); --ink:#f4f1ea; --dim:#a9b6c9; --gold:#ffd98a; --goldInk:#2b1d0e; --pink:#ff7aa8; --danger:#ff8a8a; }
+:root{ --bg:#03241a; --panel:#0b2340; --panel2:#0f2f52; --line:rgba(255,255,255,.16); --ink:#ffffff; --dim:#b7cbd8; --gold:#2fc6b6; --goldInk:#03241a; --pink:#7ee8dc; --danger:#ff9a9a; --white:#ffffff; }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
-body{margin:0; background:radial-gradient(1200px 600px at 80% -10%, #22304d 0, transparent 60%), var(--bg); color:var(--ink); font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif; min-height:100vh}
+body{margin:0; background:radial-gradient(1200px 600px at 80% -10%, #0b2340 0, transparent 60%), var(--bg); color:var(--ink); font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif; min-height:100vh}
 a{color:var(--gold)}
 [hidden]{display:none !important}
 code{background:rgba(255,255,255,.1); padding:.05em .35em; border-radius:4px; font-size:.9em}
 
-.top{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; padding:14px 20px; border-bottom:1px solid var(--line); position:sticky; top:0; background:rgba(11,22,38,.92); backdrop-filter:blur(8px); z-index:10}
+.top{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; padding:14px 20px; border-bottom:1px solid var(--line); position:sticky; top:0; background:rgba(3,36,26,.92); backdrop-filter:blur(8px); z-index:10}
 .brand{font-weight:900; font-size:18px; text-decoration:none; color:var(--ink); letter-spacing:.01em}
 .top nav{display:flex; gap:16px; align-items:center; flex-wrap:wrap; font-size:14px}
 .link{background:none; border:0; color:var(--gold); font:inherit; cursor:pointer; padding:0; text-decoration:underline}
@@ -20,11 +20,11 @@ h1{font-size:clamp(32px, 6vw, 52px); line-height:1.05; margin:0 0 8px; font-weig
 .card h2{margin:0 0 12px; font-size:21px; font-weight:800; display:flex; align-items:center; gap:10px; flex-wrap:wrap}
 .card h2 small, label small{color:var(--dim); font-weight:500; font-size:13px}
 .card h3{margin:16px 0 8px; font-size:16px}
-.n{display:inline-flex; width:30px; height:30px; border-radius:50%; align-items:center; justify-content:center; background:var(--gold); color:var(--goldInk); font-size:15px; font-weight:900; flex:0 0 auto}
+.n{display:inline-flex; width:30px; height:30px; border-radius:50%; align-items:center; justify-content:center; background:var(--white); color:var(--goldInk); font-size:15px; font-weight:900; flex:0 0 auto}
 .hint{color:var(--dim); font-size:14px; margin:4px 0 12px}
 
 label{display:flex; flex-direction:column; gap:5px; font-size:13px; font-weight:700; color:var(--dim)}
-input, textarea, select{font:inherit; font-size:16px; color:var(--ink); background:#0d1a2d; border:1px solid var(--line); border-radius:10px; padding:10px 12px; width:100%; min-width:0}
+input, textarea, select{font:inherit; font-size:16px; color:var(--ink); background:#071a30; border:1px solid var(--line); border-radius:10px; padding:10px 12px; width:100%; min-width:0}
 textarea{resize:vertical; line-height:1.4}
 input:focus, textarea:focus, select:focus{outline:2px solid var(--gold); outline-offset:1px; border-color:transparent}
 ::placeholder{color:#62728a}
@@ -34,7 +34,12 @@ input:focus, textarea:focus, select:focus{outline:2px solid var(--gold); outline
 .rows{display:flex; flex-direction:column; gap:10px}
 .rowitem{display:grid; gap:10px; align-items:start; background:var(--panel2); border:1px solid var(--line); border-radius:12px; padding:12px; position:relative}
 .rowitem.chapter{grid-template-columns:1fr 1fr; padding-right:44px}
-.rowitem.chapter .notes{grid-column:1 / -1}
+.rowitem.chapter .notes, .rowitem.chapter .trivia-block{grid-column:1 / -1}
+.trivia-block{border-top:1px dashed var(--line); padding-top:10px; display:flex; flex-direction:column; gap:8px}
+.trivia-block .tlabel{font-size:13px; font-weight:700; color:var(--dim)}
+.trow{display:grid; grid-template-columns:1.6fr 1fr 1.2fr 28px; gap:8px; align-items:center}
+.trow .x{position:static; width:28px; height:28px}
+.add.small{margin-top:0; padding:6px 10px; font-size:13px; align-self:flex-start}
 .rowitem.trivia{grid-template-columns:1.6fr 1fr 1.2fr; padding-right:44px}
 .rowitem.ism{grid-template-columns:1.4fr 1fr; padding-right:44px}
 .rowitem.message{grid-template-columns:1fr 2.4fr; padding-right:44px}
@@ -76,13 +81,13 @@ input:focus, textarea:focus, select:focus{outline:2px solid var(--gold); outline
 button{font:inherit}
 .actions button, .previewbar button, .paste button, .artbar button{background:var(--panel2); color:var(--ink); border:1px solid var(--line); border-radius:10px; padding:10px 16px; font-weight:700; cursor:pointer}
 .actions button:hover, .previewbar button:hover, .paste button:hover, .artbar button:hover{border-color:var(--gold)}
-button.primary{background:var(--gold) !important; color:var(--goldInk) !important; border-color:transparent !important; font-weight:900; box-shadow:0 4px 0 rgba(0,0,0,.35)}
+button.primary{background:var(--white) !important; color:var(--goldInk) !important; border-color:transparent !important; font-weight:900; box-shadow:0 4px 0 rgba(0,0,0,.35)}
 button.primary:active{transform:translateY(2px); box-shadow:0 2px 0 rgba(0,0,0,.35)}
 button:disabled{opacity:.5; cursor:progress}
 .paste{margin-top:16px; border-top:1px solid var(--line); padding-top:12px; font-size:15px}
 .paste summary, details summary{cursor:pointer; font-weight:700; color:var(--gold)}
 .paste ol{padding-left:20px; color:var(--dim)} .paste li{margin:8px 0}
-.log{margin:14px 0 0; padding:12px 14px; background:#08111f; border:1px solid var(--line); border-radius:10px; font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace; color:#cfe3ff; white-space:pre-wrap; max-height:260px; overflow:auto}
+.log{margin:14px 0 0; padding:12px 14px; background:#041426; border:1px solid var(--line); border-radius:10px; font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace; color:#cfe3ff; white-space:pre-wrap; max-height:260px; overflow:auto}
 
 .previewbar{display:flex; gap:10px; align-items:end; flex-wrap:wrap; margin-bottom:12px}
 .previewbar label{min-width:220px}
@@ -108,14 +113,14 @@ footer{text-align:center; color:var(--dim); font-size:13px; padding:0 16px 40px}
 .hero p{color:var(--dim); font-size:clamp(17px, 2.4vw, 21px); max-width:60ch; margin:0 auto 26px}
 .cta{display:flex; gap:12px; justify-content:center; flex-wrap:wrap}
 .cta a{display:inline-flex; align-items:center; padding:14px 26px; border-radius:12px; font-weight:900; font-size:18px; text-decoration:none; border:1px solid var(--line); color:var(--ink); background:var(--panel2)}
-.cta a.primary{background:var(--gold); color:var(--goldInk); border-color:transparent; box-shadow:0 5px 0 rgba(0,0,0,.35)}
+.cta a.primary{background:var(--white); color:var(--goldInk); border-color:transparent; box-shadow:0 5px 0 rgba(0,0,0,.35)}
 .how{max-width:980px; margin:20px auto 0; padding:0 16px; display:grid; grid-template-columns:repeat(3, 1fr); gap:14px}
 .how .card{margin:0}
 .how .card h2{font-size:18px}
 .how .card p{margin:0; color:var(--dim); font-size:15px}
 
 @media (max-width:720px){
-  .g2, .g4, .seg.two, .rowitem.chapter, .rowitem.trivia, .rowitem.ism, .rowitem.message, .seg, .how{grid-template-columns:1fr}
+  .trow, .g2, .g4, .seg.two, .rowitem.chapter, .rowitem.trivia, .rowitem.ism, .rowitem.message, .seg, .how{grid-template-columns:1fr}
   .g4{grid-template-columns:1fr 1fr}
   .top{position:static}
   .previewbar label{min-width:0; flex:1 1 100%}

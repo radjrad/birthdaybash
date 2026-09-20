@@ -13,7 +13,7 @@ No build step. Plain HTML, CSS and JS.
 1. **`builder.html`**: you fill in the form.
    - their name and age
    - 2 to 4 chapter titles with notes (eras or themes of their life)
-   - a few trivia questions with the right answers
+   - trivia questions inside each chapter (question and right answer)
    - the -isms they always say (these become running gags)
    - a roast level, anything off-limits, inside jokes that must make it in
    - up to 16 photos, each with a few words of context
@@ -31,6 +31,17 @@ The show: title → for each chapter (arrival card → pick-one → trivia → b
 **mini-game intermission**) → notes from the room → a sincere finale and toast →
 closing photo. Endearing first, roast second; the last two screens never joke.
 
+**Party mode (everyone plays along).** On the title screen, the TV (or the
+birthday person's phone) presses **Host on this screen** and gets a four-letter
+code; guests open the same show on their phones and enter the code (or open
+`?join=CODE`). The host turns the pages and every phone follows. Everyone answers
+the trivia on their own screen (the panel shows who got it and who was first),
+everyone plays each mini-game for a time, and a leaderboard goes to all. Guests
+can skip a game and keep following. It runs over WebRTC (PeerJS, loaded from a
+CDN only when a room is opened), so it needs internet but no server of yours;
+solo play never touches the network. Names, times and answers from guests are
+treated as data: clipped, escaped and range-checked on the host.
+
 Keyboard on a TV or laptop: Enter/Space activates, arrows move, 1-9 pick an
 answer, F = fullscreen, R = restart, S = sound. On a phone everything is tap.
 
@@ -39,6 +50,8 @@ answer, F = fullscreen, R = restart, S = sound. On a phone everything is tap.
 Two ways to pay for generation. Step 9 of the builder shows whichever apply.
 
 **1. Your Claude subscription (Pro / Max), through Claude Code on your Mac.**
+Any model in the list works here; the CLI is given the show's JSON schema, so
+the answer always parses.
 A web page cannot use a subscription directly, but the Claude Code CLI can, in
 headless mode. `tools/serve.mjs` is both the local web server and a small bridge:
 the builder posts to `/api/claude`, the bridge runs `claude -p`, and the text
@@ -118,10 +131,11 @@ its `kind` in the schema enum in `js/claude.js`, and its CSS in `css/engine.css`
 | `js/minigames.js` | The ten games, their stock skins and their specs |
 | `js/scenes.js` | Built-in backdrops (hills, city, mountains, beach, room, night, party), SVG sanitizer, badges |
 | `js/party.js` | The party format, `BB.normalize`, draft storage |
+| `js/party-mode.js` | Play together: host/guest rooms, following, quiz tallies, leaderboards |
 | `parties/demo.json` | "Sam at 40", a fictional demo and a hand-editable example of the format |
 | `tools/serve.mjs` | Local static server + the Claude Code subscription bridge (`/api/status`, `/api/claude`) |
 
-An exported show is `play.html` with the five engine files and the party JSON
+An exported show is `play.html` with the six engine files and the party JSON
 inlined. The builder and `claude.js` are never part of it.
 
 ## Running it locally

@@ -33,27 +33,20 @@
 
   <section class="card" id="s-chapters">
     <h2><span class="n">2</span> Chapters <small>2 to 4 eras or themes of their life</small></h2>
-    <p class="hint">A title and whatever you remember: places, names, habits, the story everyone tells. The more specific the notes, the better the jokes.</p>
+    <p class="hint">A title and whatever you remember: places, names, habits, the story everyone tells. The more specific the notes, the better the jokes. Each chapter gets its own trivia: just the question and the right answer; Claude writes the wrong answers and the punchline.</p>
     <div id="chapters" class="rows"></div>
     <button class="add" id="addChapter" type="button">+ Add a chapter</button>
   </section>
 
-  <section class="card" id="s-trivia">
-    <h2><span class="n">3</span> Trivia <small>the room shouts the answers</small></h2>
-    <p class="hint">Just the question and the right answer. Claude writes the wrong answers and the punchline, and puts each question in the chapter it fits.</p>
-    <div id="trivia" class="rows"></div>
-    <button class="add" id="addTrivia" type="button">+ Add a question</button>
-  </section>
-
   <section class="card" id="s-isms">
-    <h2><span class="n">4</span> -isms <small>the things they always say</small></h2>
+    <h2><span class="n">3</span> -isms <small>the things they always say</small></h2>
     <p class="hint">These become running gags: wrong-answer buzzers, joke options, button labels, mini-game lines.</p>
     <div id="isms" class="rows"></div>
     <button class="add" id="addIsm" type="button">+ Add an -ism</button>
   </section>
 
   <section class="card" id="s-tone">
-    <h2><span class="n">5</span> How hard do we roast?</h2>
+    <h2><span class="n">4</span> How hard do we roast?</h2>
     <div class="seg" id="f-roast" role="radiogroup">
       <label><input type="radio" name="roast" value="gentle"><span><b>Gentle</b>Grandkids are in the room</span></label>
       <label><input type="radio" name="roast" value="medium" checked><span><b>Medium</b>A best-man speech</span></label>
@@ -67,27 +60,27 @@
   </section>
 
   <section class="card" id="s-photos">
-    <h2><span class="n">6</span> Photos <small>up to 16</small></h2>
+    <h2><span class="n">5</span> Photos <small>up to 16</small></h2>
     <p class="hint">Drop them all in. A few words on each ("age 8, county fair") helps a lot. Photos are shrunk in your browser and only leave it if you let Claude look at them.</p>
     <label class="drop" id="drop"><input id="photoInput" type="file" accept="image/*" multiple hidden><span>Drop photos here or <u>choose files</u></span></label>
     <div id="photos" class="photos"></div>
   </section>
 
   <section class="card" id="s-minis">
-    <h2><span class="n">7</span> Mini-games <small>one plays after each chapter</small></h2>
+    <h2><span class="n">6</span> Mini-games <small>one plays after each chapter</small></h2>
     <p class="hint">Ten games, always the same mechanics; each party just gets new words and emoji. Pick per chapter above, or leave it to Claude. Try any of them with its stock skin:</p>
     <div id="catalog" class="catalog"></div>
   </section>
 
   <section class="card" id="s-messages">
-    <h2><span class="n">8</span> Notes from the room <small>optional</small></h2>
+    <h2><span class="n">7</span> Notes from the room <small>optional</small></h2>
     <p class="hint">Short messages from guests who want a line in the show. These are shown exactly as written, just before the toast.</p>
     <div id="messages" class="rows"></div>
     <button class="add" id="addMessage" type="button">+ Add a note</button>
   </section>
 
   <section class="card" id="s-claude">
-    <h2><span class="n">9</span> Write it</h2>
+    <h2><span class="n">8</span> Write it</h2>
     <div class="seg two" id="payWith" hidden>
       <label><input type="radio" name="pay" value="bridge"><span><b>My Claude subscription</b>Runs through Claude Code on this Mac. No key, no extra bill.</span></label>
       <label><input type="radio" name="pay" value="key"><span><b>An API key</b>Pay per use at console.anthropic.com. Works anywhere, including the hosted site.</span></label>
@@ -121,7 +114,7 @@
   </section>
 
   <section class="card" id="s-review" hidden>
-    <h2><span class="n">10</span> Preview, tweak, export</h2>
+    <h2><span class="n">9</span> Preview, tweak, export</h2>
     <div class="previewbar">
       <label>Jump to<select id="jump"></select></label>
       <button id="reload" type="button">Restart preview</button>

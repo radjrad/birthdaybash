@@ -9,12 +9,13 @@ const BB = window.BB;
 const $ = (s, r = document) => r.querySelector(s);
 const esc = BB.esc;
 const MAX_PHOTOS = 16, MAX_CHAPTERS = 4, MIN_CHAPTERS = 2;
-const ENGINE_FILES = ['css/engine.css', 'js/scenes.js', 'js/minigames.js', 'js/party.js', 'js/engine.js'];
+const ENGINE_FILES = ['css/engine.css', 'js/scenes.js', 'js/minigames.js', 'js/party.js', 'js/engine.js', 'js/party-mode.js'];
 
+const blankTrivia = () => ({ q:'', a:'', wrong:'' });
+const blankChapter = () => ({ title:'', notes:'', mini:'', trivia:[blankTrivia()] });
 const blankForm = () => ({
   name:'', age:'', pronouns:'', partyDate:'', relation:'', from:'', roast:'medium', offLimits:'', mustInclude:'',
-  chapters:[{ title:'', notes:'', mini:'' }, { title:'', notes:'', mini:'' }, { title:'', notes:'', mini:'' }],
-  trivia:[{ q:'', a:'', wrong:'' }, { q:'', a:'', wrong:'' }, { q:'', a:'', wrong:'' }],
+  chapters:[blankChapter(), blankChapter(), blankChapter()],
   isms:[{ text:'', when:'' }, { text:'', when:'' }],
   messages:[],
   vision:true, art:true,
@@ -38,14 +39,13 @@ function fullParty() {            /* the raw party + everything that comes strai
 /* ---------- rows: chapters, trivia, -isms, notes ---------- */
 const miniOptions = () => `<option value="">Let Claude pick</option>` + BB.MINI_CATALOG.map(m => `<option value="${m.kind}">${esc(m.name)}</option>`).join('');
 const ROWS = {
-  chapters: { el:'#chapters', cls:'chapter', blank:() => ({ title:'', notes:'', mini:'' }), min:MIN_CHAPTERS, max:MAX_CHAPTERS, add:'#addChapter',
+  chapters: { el:'#chapters', cls:'chapter', blank:blankChapter, min:MIN_CHAPTERS, max:MAX_CHAPTERS, add:'#addChapter',
     html:(c, i) => `<label>Chapter ${i + 1} title<input data-k="title" value="${esc(c.title)}" placeholder="${['The Heartland', 'Penn', 'San Francisco', 'Dad Mode'][i] || 'A chapter'}"></label>
       <label>Mini-game after it<select data-k="mini">${miniOptions()}</select></label>
-      <label class="notes">What happened here? <small>places, people, habits, the story everyone tells</small><textarea data-k="notes" rows="3" placeholder="${['Grew up outside Chicago but acts like a farm kid. Won a blue ribbon at the county fair once and never let it go.', 'Wharton. Joined DU. Undefeated at beer pong (his words). Made friends with the entire freshman class in a week.', 'Plays snare in the marching band at Pride. Always has a camera. Married Justin in Portugal.', ''][i] || ''}">${esc(c.notes)}</textarea></label>` },
-  trivia: { el:'#trivia', cls:'trivia', blank:() => ({ q:'', a:'', wrong:'' }), min:0, max:10, add:'#addTrivia',
-    html:(t) => `<label>Question<input data-k="q" value="${esc(t.q)}" placeholder="Where did Shannon and Justin get married?"></label>
-      <label>Right answer<input data-k="a" value="${esc(t.a)}" placeholder="Portugal"></label>
-      <label>Wrong answers <small>optional</small><input data-k="wrong" value="${esc(t.wrong)}" placeholder="City Hall, a barn"></label>` },
+      <label class="notes">What happened here? <small>places, people, habits, the story everyone tells</small><textarea data-k="notes" rows="3" placeholder="${['Grew up outside Chicago but acts like a farm kid. Won a blue ribbon at the county fair once and never let it go.', 'Wharton. Joined DU. Undefeated at beer pong (his words). Made friends with the entire freshman class in a week.', 'Plays snare in the marching band at Pride. Always has a camera. Married Justin in Portugal.', ''][i] || ''}">${esc(c.notes)}</textarea></label>
+      <div class="trivia-block"><div class="tlabel">Trivia for this chapter <small>the room shouts the answers</small></div>
+        ${(c.trivia || []).map((t, k) => `<div class="trow" data-t="${k}"><input data-tk="q" value="${esc(t.q)}" placeholder="Where did they get married?"><input data-tk="a" value="${esc(t.a)}" placeholder="Right answer"><input data-tk="wrong" value="${esc(t.wrong)}" placeholder="Wrong answers (optional)"><button class="x" type="button" data-tremove title="Remove question">×</button></div>`).join('')}
+        <button class="add small" type="button" data-tadd ${(c.trivia || []).length >= 4 ? 'disabled' : ''}>+ Add a question</button></div>` },
   isms: { el:'#isms', cls:'ism', blank:() => ({ text:'', when:'' }), min:0, max:10, add:'#addIsm',
     html:(s) => `<label>They always say...<input data-k="text" value="${esc(s.text)}" placeholder="Fricken fantastic"></label>
       <label>When? <small>optional</small><input data-k="when" value="${esc(s.when)}" placeholder="about everything, especially tacos"></label>` },
@@ -63,12 +63,16 @@ function renderRows(list) {
 function wireRows() {
   for (const [list, R] of Object.entries(ROWS)) $(R.add).addEventListener('click', () => { if (state.form[list].length < R.max) { state.form[list].push(R.blank()); renderRows(list); save(); } });
   document.addEventListener('input', (e) => {
-    const row = e.target.closest('.rowitem'), k = e.target.dataset.k;
+    const row = e.target.closest('.rowitem'), k = e.target.dataset.k, tk = e.target.dataset.tk;
+    if (row && tk) { const t = state.form.chapters[+row.dataset.i].trivia[+e.target.closest('.trow').dataset.t]; if (t) { t[tk] = e.target.value; save(); } return; }
     if (row && k) { state.form[row.dataset.list][+row.dataset.i][k] = e.target.value; save(); return; }
     const ph = e.target.closest('.ph');
     if (ph && k) { const p = state.photos.find(x => x.id === ph.dataset.id); if (p) { p[k] = e.target.value; save(); } }
   });
   document.addEventListener('click', (e) => {
+    const crow = e.target.closest('.rowitem.chapter');
+    if (crow && e.target.matches('[data-tadd]')) { const c = state.form.chapters[+crow.dataset.i]; c.trivia = c.trivia || []; if (c.trivia.length < 4) { c.trivia.push(blankTrivia()); renderRows('chapters'); save(); } return; }
+    if (crow && e.target.matches('[data-tremove]')) { const c = state.form.chapters[+crow.dataset.i]; c.trivia.splice(+e.target.closest('.trow').dataset.t, 1); renderRows('chapters'); save(); return; }
     if (!e.target.matches('[data-remove]')) return;
     const row = e.target.closest('.rowitem');
     if (row) { state.form[row.dataset.list].splice(+row.dataset.i, 1); renderRows(row.dataset.list); save(); return; }
@@ -160,8 +164,8 @@ function brief() {
   const f = state.form;
   return {
     name:f.name.trim() || 'The Birthday Person', age:f.age, pronouns:f.pronouns, relation:f.relation.trim(), from:f.from.trim(), partyDate:f.partyDate, roast:f.roast, offLimits:f.offLimits.trim(), mustInclude:f.mustInclude.trim(),
-    chapters:f.chapters.filter(c => c.title.trim() || c.notes.trim()).map((c, i) => ({ title:c.title.trim() || `Chapter ${i + 1}`, notes:c.notes.trim(), mini:c.mini })),
-    trivia:f.trivia.filter(t => t.q.trim() && t.a.trim()).map(t => ({ q:t.q.trim(), a:t.a.trim(), wrong:t.wrong.trim() })),
+    chapters:f.chapters.filter(c => c.title.trim() || c.notes.trim()).map((c, i) => ({ title:c.title.trim() || `Chapter ${i + 1}`, notes:c.notes.trim(), mini:c.mini,
+      trivia:(c.trivia || []).filter(t => t.q.trim() && t.a.trim()).map(t => ({ q:t.q.trim(), a:t.a.trim(), wrong:t.wrong.trim() })) })),
     isms:f.isms.filter(s => s.text.trim()).map(s => ({ text:s.text.trim(), when:s.when.trim() })),
     photos:state.photos.map(p => ({ id:p.id, note:p.note.trim(), where:p.where, w:p.w, h:p.h })),
   };
@@ -194,12 +198,12 @@ function localDraft(b) {
   const isms = b.isms.map(s => s.text), ism = (i) => isms.length ? isms[i % isms.length] : '';
   const chapters = b.chapters.map((c, i) => ({ name:c.title, arrival:{ text:c.notes || `${c.title}. Ask ${b.name} about it; there is a story.` }, trivia:[], mini: c.mini ? { kind:c.mini } : undefined,
     choice:{ question:`${c.title}. What is ${b.name} most likely doing?`, options:[{ label:'Exactly what they were told', reaction:'Nobody in this room believes that.' }, { label:'The opposite, with confidence', reaction:'Correct. Loudly, and with a plan.' }].concat(ism(i) ? [{ label:`Saying "${ism(i)}"`, reaction:'Every time. Without fail.' }] : []) } }));
-  b.trivia.forEach((t, i) => {
+  b.chapters.forEach((c, ci) => c.trivia.forEach((t, i) => {
     const wrong = t.wrong ? t.wrong.split(/[,;\n]/).map(s => s.trim()).filter(Boolean) : [];
     const options = [t.a, ...wrong, 'Nobody knows', ism(i) && `"${ism(i)}"`, 'It is classified'].filter(Boolean).slice(0, 4);
-    const at = i % options.length; [options[0], options[at]] = [options[at], options[0]];
-    chapters[i % chapters.length].trivia.push({ question:t.q, options, answer:at, reaction:`${t.a}. The room knew it.` });
-  });
+    const at = (ci + i) % options.length; [options[0], options[at]] = [options[at], options[0]];
+    chapters[ci].trivia.push({ question:t.q, options, answer:at, reaction:`${t.a}. The room knew it.` });
+  }));
   return { chapters };
 }
 
@@ -329,6 +333,11 @@ function wireProject() {
 }
 function load(d) {
   state.form = Object.assign(blankForm(), d.form || {});
+  state.form.chapters.forEach(c => { if (!Array.isArray(c.trivia)) c.trivia = [blankTrivia()]; });
+  if (Array.isArray(state.form.trivia)) {          /* older drafts kept trivia in its own list: deal them into the chapters */
+    state.form.trivia.filter(t => t.q || t.a).forEach((t, i) => { const c = state.form.chapters[i % state.form.chapters.length]; if (c.trivia.length === 1 && !c.trivia[0].q && !c.trivia[0].a) c.trivia = []; c.trivia.push(t); });
+    delete state.form.trivia;
+  }
   state.photos = Array.isArray(d.photos) ? d.photos : []; state.raw = d.raw || null;
   state.nextPhoto = d.nextPhoto || state.photos.reduce((m, p) => Math.max(m, +String(p.id).replace(/\D/g, '') + 1), 1);
   fillFields(); Object.keys(ROWS).forEach(renderRows); renderPhotos();
