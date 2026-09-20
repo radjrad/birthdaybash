@@ -88,22 +88,29 @@
 
   <section class="card" id="s-claude">
     <h2><span class="n">9</span> Write it</h2>
+    <div class="seg two" id="payWith" hidden>
+      <label><input type="radio" name="pay" value="bridge"><span><b>My Claude subscription</b>Runs through Claude Code on this Mac. No key, no extra bill.</span></label>
+      <label><input type="radio" name="pay" value="key"><span><b>An API key</b>Pay per use at console.anthropic.com. Works anywhere, including the hosted site.</span></label>
+    </div>
+    <p class="hint" id="bridgeNote" hidden></p>
     <div class="grid g2">
-      <label>Your Anthropic API key <small>from console.anthropic.com</small><input id="f-key" type="password" placeholder="sk-ant-..." autocomplete="off" spellcheck="false"></label>
+      <label id="keyField">Your Anthropic API key <small>from console.anthropic.com</small><input id="f-key" type="password" placeholder="sk-ant-..." autocomplete="off" spellcheck="false"></label>
       <label>Model<select id="f-model"></select></label>
     </div>
     <div class="checks">
-      <label><input type="checkbox" id="f-remember"> Remember the key in this browser</label>
+      <label id="rememberField"><input type="checkbox" id="f-remember"> Remember the key in this browser</label>
       <label><input type="checkbox" id="f-vision" checked> Let Claude see the photos (better captions and placement)</label>
       <label><input type="checkbox" id="f-art" checked> Paint a custom backdrop and badge for every chapter</label>
     </div>
-    <p class="hint">The key is sent only to api.anthropic.com, straight from this page. A full show costs roughly the price of a coffee on Opus, less on Sonnet.</p>
+    <p class="hint" id="keyNote">The key is sent only to api.anthropic.com, straight from this page. A full show costs roughly the price of a coffee on Opus, less on Sonnet.</p>
     <div class="actions">
       <button class="primary" id="generate" type="button">✨ Write it with Claude</button>
       <button id="quick" type="button">Quick draft without Claude</button>
     </div>
     <details class="paste">
-      <summary>No API key? Use your Claude app instead</summary>
+      <summary>No API key? Use your Claude subscription instead</summary>
+      <p><b>Best way:</b> run this builder on your own Mac with <code>node tools/serve.mjs</code> and open <code>localhost:8766/builder.html</code>. If Claude Code is installed and logged in, a "My Claude subscription" option appears above and everything (photos and painted backdrops included) runs on your plan.</p>
+      <p><b>By hand:</b></p>
       <ol>
         <li><button id="copyPrompt" type="button">Copy the prompt</button> and paste it into a chat at claude.ai.</li>
         <li>Paste Claude's JSON answer here: <textarea id="pasteBox" rows="4" placeholder='{"title": ...}' spellcheck="false"></textarea></li>

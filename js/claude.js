@@ -135,6 +135,7 @@ async function client(key) {
 /* One streamed request. Tries the nicest request shape first and steps down if the API rejects a parameter:
    refusal fallbacks (beta) -> plain; structured output -> plain JSON-by-instruction. */
 async function ask(key, { model, system, content, schema, maxTokens = 32000, onProgress }) {
+  if (key === BRIDGE) return askBridge({ model, system, content, schema, onProgress });
   const c = await client(key);
   const base = { model, max_tokens:maxTokens, system, messages:[{ role:'user', content }] };
   const wantsFallback = /^claude-(opus-5|fable)/.test(model);
@@ -166,6 +167,25 @@ async function ask(key, { model, system, content, schema, maxTokens = 32000, onP
   }
   throw explain(lastErr);
 }
+/* The subscription route: tools/serve.mjs runs the Claude Code CLI on this Mac (`claude -p`), which is logged in
+   with the user's Claude plan. No key, no streaming; photos travel as files the CLI is allowed to Read. */
+const BRIDGE = 'bridge';
+async function bridgeStatus() { try { const r = await fetch('api/status', { cache:'no-store' }); if (!r.ok) return null; const d = await r.json(); return d && d.bridge ? d : null; } catch (e) { return null; } }
+async function askBridge({ model, system, content, schema, onProgress }) {
+  const prompt = content.filter(b => b.type === 'text' && !/^Photo id "/.test(b.text)).map(b => b.text).join('\n\n');
+  const images = []; content.forEach((b, i) => { if (b.type === 'image') { const m = /^Photo id "([^"]+)":/.exec((content[i - 1] || {}).text || ''); images.push({ id: m ? m[1] : 'p' + i, data: b.source.data }); } });
+  if (schema) system += `\n\nThe JSON object has exactly this shape (every field present; "" or [] when unused):\n${JSON.stringify(skeleton(schema))}\nReply with the JSON object only.`;
+  const t0 = Date.now(), tick = onProgress ? setInterval(() => onProgress(Math.round((Date.now() - t0) / 1000), 'seconds'), 1000) : null;
+  try {
+    const r = await fetch('api/claude', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ model, system, prompt, images }) });
+    const d = await r.json().catch(() => ({ error:'The local bridge sent back something unreadable.' }));
+    if (d.error) throw new Error(d.error);
+    if (!d.text || !d.text.trim()) throw new Error('Claude returned an empty answer. Try again.');
+    return { text:d.text, truncated:false, usage:d.usage };
+  } catch (e) { if (e instanceof TypeError) throw new Error('The local bridge is not answering. Is "node tools/serve.mjs" still running?'); throw e; }
+  finally { clearInterval(tick); }
+}
+
 function explain(e) {
   if (!Anthropic || !(e instanceof Anthropic.APIError)) return e;
   if (e instanceof Anthropic.AuthenticationError) return new Error('That API key was rejected. Check it at console.anthropic.com (Settings > API keys).');
@@ -217,5 +237,5 @@ function promptForPaste(brief) {
 }
 function skeleton(s) { if (s.type === 'object') return Object.fromEntries(Object.entries(s.properties).map(([k, v]) => [k, skeleton(v)])); if (s.type === 'array') return [skeleton(s.items)]; if (s.type === 'integer') return 0; return s.enum ? s.enum.join('|') : ''; }
 
-BB.claude = { MODELS, writeParty, paintChapter, promptForPaste, parseJSON, parseLayers, briefText };
+BB.claude = { MODELS, BRIDGE, bridgeStatus, writeParty, paintChapter, promptForPaste, parseJSON, parseLayers, briefText };
 })();

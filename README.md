@@ -36,18 +36,43 @@ answer, F = fullscreen, R = restart, S = sound. On a phone everything is tap.
 
 ## Hooking up Claude
 
-In step 9 of the builder, paste an API key from
-[console.anthropic.com](https://console.anthropic.com) (Settings → API keys).
-The page calls the API directly from your browser with the official
-`@anthropic-ai/sdk`; the key is sent only to `api.anthropic.com`, and is stored
-(in this browser's localStorage) only if you tick "Remember".
+Two ways to pay for generation. Step 9 of the builder shows whichever apply.
 
-- Default model is Claude Opus 5; Sonnet 5 is cheaper and faster, Fable 5.1 is
-  the most capable.
-- **No API key?** Open "No API key? Use your Claude app instead": it copies the
-  same prompt for you to paste into claude.ai, and you paste the JSON answer
-  back. Backdrops fall back to the built-in scenes on that path.
-- **No Claude at all?** "Quick draft" builds a playable show from your own words
+**1. Your Claude subscription (Pro / Max), through Claude Code on your Mac.**
+A web page cannot use a subscription directly, but the Claude Code CLI can, in
+headless mode. `tools/serve.mjs` is both the local web server and a small bridge:
+the builder posts to `/api/claude`, the bridge runs `claude -p`, and the text
+comes back. One-time setup:
+
+```bash
+claude
+```
+
+then type `/login` and sign in with your Claude plan. (For a long-lived login,
+`claude setup-token` and export the result as `CLAUDE_CODE_OAUTH_TOKEN` in the
+shell that starts the server.) After that, run the server (see below), open the
+builder at `localhost:8766`, and "My Claude subscription" is selected for you.
+Usage counts against your plan's normal limits. Photos are handed to the CLI as
+temp files with only the `Read` tool allowed; backdrop calls get no tools. The
+bridge listens on 127.0.0.1 only, rejects requests from any other origin, and
+never passes an `ANTHROPIC_API_KEY` through, so it cannot bill a key by surprise.
+This route only exists when you run the builder locally; it is not on the hosted
+site.
+
+**2. An API key**, from [console.anthropic.com](https://console.anthropic.com)
+(Settings → API keys), billed per use and separate from a subscription. The page
+calls the API straight from your browser with the official `@anthropic-ai/sdk`;
+the key is sent only to `api.anthropic.com`, and is stored (in this browser's
+localStorage) only if you tick "Remember". This works anywhere, hosted site
+included.
+
+Either way the default model is Claude Opus 5; Sonnet 5 is cheaper and faster,
+Fable 5.1 is the most capable.
+
+- **By hand:** "No API key?" copies the same prompt for you to paste into
+  claude.ai, and you paste the JSON answer back. Backdrops fall back to the
+  built-in scenes on that path.
+- **No Claude at all:** "Quick draft" builds a playable show from your own words
   with stock jokes. Useful for checking photos and flow.
 
 Everything Claude returns is treated as untrusted: text is escaped, SVG goes
@@ -94,7 +119,7 @@ its `kind` in the schema enum in `js/claude.js`, and its CSS in `css/engine.css`
 | `js/scenes.js` | Built-in backdrops (hills, city, mountains, beach, room, night, party), SVG sanitizer, badges |
 | `js/party.js` | The party format, `BB.normalize`, draft storage |
 | `parties/demo.json` | "Sam at 40", a fictional demo and a hand-editable example of the format |
-| `tools/serve.mjs` | Tiny local static server |
+| `tools/serve.mjs` | Local static server + the Claude Code subscription bridge (`/api/status`, `/api/claude`) |
 
 An exported show is `play.html` with the five engine files and the party JSON
 inlined. The builder and `claude.js` are never part of it.

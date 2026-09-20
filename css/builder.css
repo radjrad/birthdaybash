@@ -45,6 +45,7 @@ input:focus, textarea:focus, select:focus{outline:2px solid var(--gold); outline
 .add:disabled{opacity:.4; cursor:default}
 
 .seg{display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-bottom:14px}
+.seg.two{grid-template-columns:1fr 1fr}
 .seg label{cursor:pointer; position:relative}
 .seg input{position:absolute; left:0; top:0; width:1px; height:1px; padding:0; border:0; opacity:0; pointer-events:none}
 .seg span{display:flex; flex-direction:column; gap:2px; padding:12px; border-radius:12px; border:1px solid var(--line); background:var(--panel2); font-weight:500; font-size:13px; color:var(--dim); height:100%}
@@ -114,7 +115,7 @@ footer{text-align:center; color:var(--dim); font-size:13px; padding:0 16px 40px}
 .how .card p{margin:0; color:var(--dim); font-size:15px}
 
 @media (max-width:720px){
-  .g2, .g4, .rowitem.chapter, .rowitem.trivia, .rowitem.ism, .rowitem.message, .seg, .how{grid-template-columns:1fr}
+  .g2, .g4, .seg.two, .rowitem.chapter, .rowitem.trivia, .rowitem.ism, .rowitem.message, .seg, .how{grid-template-columns:1fr}
   .g4{grid-template-columns:1fr 1fr}
   .top{position:static}
   .previewbar label{min-width:0; flex:1 1 100%}

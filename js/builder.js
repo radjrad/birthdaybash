@@ -95,6 +95,24 @@ function wireFields() {
   const persistKey = () => { try { if (remember.checked && key.value.trim()) localStorage.setItem('bb-key', key.value.trim()); else localStorage.removeItem('bb-key'); } catch (e) {} };
   key.addEventListener('change', persistKey); remember.addEventListener('change', persistKey);
   model.addEventListener('change', () => { try { localStorage.setItem('bb-model', model.value); } catch (e) {} });
+  document.querySelectorAll('input[name=pay]').forEach(r => r.addEventListener('change', () => { try { localStorage.setItem('bb-pay', r.value); } catch (e) {} showPay(); }));
+}
+
+/* ---------- who pays: the local Claude Code bridge (subscription) or an API key ---------- */
+let bridge = null;
+const payMode = () => (bridge && ($('input[name=pay]:checked') || {}).value === 'bridge' ? 'bridge' : 'key');
+const authToken = () => (payMode() === 'bridge' ? BB.claude.BRIDGE : $('#f-key').value.trim());
+function showPay() {
+  const viaBridge = payMode() === 'bridge';
+  $('#payWith').hidden = !bridge;
+  $('#keyField').hidden = viaBridge; $('#rememberField').hidden = viaBridge; $('#keyNote').hidden = viaBridge;
+  const note = $('#bridgeNote'); note.hidden = !viaBridge;
+  if (viaBridge) note.textContent = bridge.cli ? `Found ${bridge.version || 'Claude Code'} on this Mac. It must be logged in with your Claude plan (run "claude" in Terminal and type /login if it is not). Generation counts against your plan's usage limits; a full show with backdrops is a handful of long messages.` : 'The local server is running but could not find the claude command. Install Claude Code, then restart the server.';
+}
+async function detectBridge() {
+  bridge = await BB.claude.bridgeStatus();
+  if (bridge) { let want = 'bridge'; try { want = localStorage.getItem('bb-pay') || 'bridge'; } catch (e) {} const r = $(`input[name=pay][value=${want}]`) || $('input[name=pay][value=bridge]'); r.checked = true; }
+  showPay();
 }
 
 /* ---------- photos ---------- */
@@ -195,7 +213,7 @@ function adopt(raw, b) {
   save(); return showReview();
 }
 async function generate() {
-  const b = brief(), problem = checkBrief(b), key = $('#f-key').value.trim(), model = $('#f-model').value;
+  const b = brief(), problem = checkBrief(b), key = authToken(), model = $('#f-model').value;
   if (problem) return alert(problem);
   if (!key) return alert('Paste your Anthropic API key in step 9 (or use "No API key?" below it).');
   logEl().textContent = ''; setBusy(true);
@@ -204,7 +222,7 @@ async function generate() {
     if (state.form.vision && state.photos.length) { log(`Preparing ${state.photos.length} photos for Claude to look at...`); images = await visionImages(); }
     log('Claude is writing the show... (usually under two minutes)');
     const t0 = Date.now();
-    const { party, usage } = await BB.claude.writeParty(key, model, b, images, (n) => log(`Claude is writing the show... ${n.toLocaleString()} characters`, true));
+    const { party, usage } = await BB.claude.writeParty(key, model, b, images, (n, unit) => log(`Claude is writing the show... ${n.toLocaleString()} ${unit || 'characters'}`, true));
     log(`Show written in ${Math.round((Date.now() - t0) / 1000)}s${usage ? ` (${usage.input_tokens.toLocaleString()} tokens in, ${usage.output_tokens.toLocaleString()} out)` : ''}.`);
     await adopt(party, b);
     if (state.form.art) await paintAll(key, model, b);
@@ -265,7 +283,7 @@ function wireReview() {
     const p = e.target.dataset.paint, u = e.target.dataset.unpaint;
     if (u !== undefined) { const c = state.raw.chapters[+u]; if (c && c.scene) delete c.scene.layers; if (c) delete c.emblem; save(); return showReview(`c${+u + 1}-arrival`); }
     if (p === undefined) return;
-    const key = $('#f-key').value.trim(); if (!key) return alert('Repainting needs your API key (step 9).');
+    const key = authToken(); if (!key) return alert('Repainting needs your API key (step 9).');
     setBusy(true); try { await paintAll(key, $('#f-model').value, brief(), +p); $('#jump').value = `c${+p + 1}-arrival`; await showReview(`c${+p + 1}-arrival`); } catch (err) { log('✖ ' + err.message); } finally { setBusy(false); }
   });
   $('.pinframe').addEventListener('click', (e) => {
@@ -326,6 +344,7 @@ async function init() {
   $('#quick').addEventListener('click', async () => { const b = brief(), problem = checkBrief(b); if (problem) return alert(problem); logEl().textContent = ''; await adopt(localDraft(b), b); log('Quick draft built from your own words, with stock jokes and built-in scenes. Claude makes it much funnier.'); $('#s-review').scrollIntoView({ behavior:'smooth' }); });
   $('#copyPrompt').addEventListener('click', async () => { const b = brief(), problem = checkBrief(b); if (problem) return alert(problem); const text = BB.claude.promptForPaste(b); try { await navigator.clipboard.writeText(text); $('#copyPrompt').textContent = 'Copied ✓'; } catch (e) { $('#pasteBox').value = text; alert('Could not reach the clipboard, so the prompt is in the box below: copy it from there, then replace it with the answer.'); } });
   $('#usePaste').addEventListener('click', async () => { try { const party = BB.claude.parseJSON($('#pasteBox').value); logEl().textContent = ''; await adopt(party, brief()); log('Show loaded from your pasted JSON.'); $('#s-review').scrollIntoView({ behavior:'smooth' }); } catch (e) { alert(e.message); } });
+  detectBridge();
   let saved = null; try { saved = await BB.store.get('builder'); } catch (e) {}
   load(saved || {});
 }
