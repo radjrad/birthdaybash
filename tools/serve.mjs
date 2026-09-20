@@ -108,8 +108,9 @@ const handler = async (req, res) => {
   } catch { res.writeHead(404, { 'Content-Type': 'text/plain' }).end('Not found'); }
 };
 /* If the port is taken (another copy of this server, or a preview), step up to the next free one. */
-let port = +process.argv[2] || 8766;
+const startPort = +process.argv[2] || 8766;
+let port = startPort;
 const server = createServer(handler);
-server.on('error', (e) => { if (e.code === 'EADDRINUSE' && port < 8776) { port++; server.listen(port, '127.0.0.1'); } else throw e; });
+server.on('error', (e) => { if (e.code === 'EADDRINUSE' && port < startPort + 10) { port++; server.listen(port, '127.0.0.1'); } else throw e; });
 server.on('listening', () => console.log(`Birthday Bash on http://localhost:${port}/builder.html\nClaude subscription bridge: ${CLI}`));
 server.listen(port, '127.0.0.1');
