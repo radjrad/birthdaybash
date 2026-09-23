@@ -39,7 +39,7 @@ const PARTY_SCHEMA = O({
     choice: O({ question:S(), options:A(O({ label:S(), reaction:S() })) }),
     trivia: A(O({ question:S(), options:A(S()), answer:{ type:'integer' }, reaction:S() })),
     photos: A(O({ id:S(), caption:S() })),
-    mini: O({ kind:S({ enum:['match', 'flick', 'echo', 'order', 'crowd', 'chart', 'pin', 'brawl', 'trek', 'whack'] }), title:S(), noun:S(), intro:S(), items:A(S()), emoji:A(S()), lines:A(S()), shout:S(), label:S(), win:S(), photo:S(), photoCaption:S() }),
+    mini: O({ kind:S({ enum:['match', 'echo', 'order', 'whack', 'brawl', 'pin', 'clock', 'balance', 'popcorn', 'redlight', 'slice', 'balloon', 'pinata', 'missing', 'shell', 'count', 'draw', 'scramble', 'flappy'] }), title:S(), noun:S(), intro:S(), items:A(S()), emoji:A(S()), lines:A(S()), shout:S(), label:S(), win:S(), photo:S(), photoCaption:S() }),
   })),
   finale: O({ heading:S(), lines:A(S()), final:S(), button:S(), toast:S() }),
   closing: O({ title:S(), sub:S(), photo:S() }),
@@ -77,7 +77,7 @@ Photos: only use ids from the host's list, each at most once across title / arri
 MINI-GAMES
 The mechanics are fixed; you only write the skin. Every skin has the same fields: kind, title (the game's name for this party, like "Beer Pong at the DU House"), noun, intro (one line shown before play), items[], emoji[], lines[], shout, label, win, photo, photoCaption. Use "" or [] for fields a game does not use. Nobody can lose any of these games, so lines about failure are about comic failure on the way to winning.
 ${BB.MINI_CATALOG.map(m => `- ${m.kind} (${m.name}): ${m.blurb} ${m.spec}`).join('\n')}
-For flick, echo and trek, photo + photoCaption is an optional snapshot that pops up on the win.
+For echo, photo + photoCaption is an optional snapshot that pops up on the win. Prefer a mix of reflex, memory and social games across the show; draw is best when guests play on phones.
 
 Return only the JSON object.`;
 }

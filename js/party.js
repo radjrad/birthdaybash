@@ -49,13 +49,14 @@ function palette(raw, fallback) {
   return p;
 }
 
-const MINI_NEEDS = { match:{ items:8, emoji:8 }, flick:{ emoji:2, lines:2 }, echo:{ items:3, emoji:3, lines:3 }, order:{ items:5, lines:5 }, crowd:{ lines:7 }, chart:{ items:7, lines:7 }, pin:{ emoji:1, lines:4 }, brawl:{ items:6, emoji:2, lines:2 }, trek:{ lines:8, emoji:2 }, whack:{ items:2, emoji:2, lines:2 } };
+const MINI_NEEDS = { match:{ items:8, emoji:8 }, echo:{ items:3, emoji:3, lines:3 }, order:{ items:5, lines:5 }, whack:{ items:2, emoji:2, lines:2 }, brawl:{ items:6, emoji:2, lines:2 }, pin:{ emoji:1, lines:4 }, clock:{ items:3, lines:3 }, balance:{ emoji:6, lines:3 }, popcorn:{ emoji:2, lines:2 }, redlight:{ items:1, emoji:3, lines:2 }, slice:{ emoji:1, lines:2 }, balloon:{ emoji:1, lines:2 }, pinata:{ emoji:1, items:6, lines:2 }, missing:{ items:8, emoji:8, lines:2 }, shell:{ emoji:2, lines:2 }, count:{ emoji:1, lines:2 }, draw:{ lines:2 }, scramble:{ lines:1 }, flappy:{ emoji:2, items:1, lines:2 } };
+const NEEDS_PHOTO = new Set(['pin', 'scramble']);
 function mini(raw, ctx, hasPhoto, used) {
   raw = raw && typeof raw === 'object' ? raw : {};
   let kind = BB.MINI_KINDS.includes(raw.kind) ? raw.kind : null;
-  if (!kind) kind = BB.MINI_KINDS.find(k => !used.has(k) && k !== 'pin') || 'match';
+  if (!kind) kind = BB.MINI_KINDS.find(k => !used.has(k) && !NEEDS_PHOTO.has(k)) || 'match';
   let photo = hasPhoto(raw.photo) ? raw.photo : null;
-  if (kind === 'pin' && !photo) { photo = ctx.anyPhoto; if (!photo) { kind = BB.MINI_KINDS.find(k => !used.has(k) && k !== 'pin') || 'whack'; raw = {}; } }
+  if (NEEDS_PHOTO.has(kind) && !photo) { photo = ctx.heroPhoto || ctx.anyPhoto; if (!photo) { kind = BB.MINI_KINDS.find(k => !used.has(k) && !NEEDS_PHOTO.has(k)) || 'whack'; raw = {}; } }
   used.add(kind);
   const D = BB.miniDefaults(kind, ctx), need = MINI_NEEDS[kind] || {}, T = { kind, photo };
   for (const k of ['title', 'noun', 'intro', 'shout', 'label', 'win']) T[k] = str(raw[k], D[k]);
@@ -64,6 +65,7 @@ function mini(raw, ctx, hasPhoto, used) {
     T[k] = n ? Array.from({ length: n }, (_, i) => got[i] || D[k][i] || '') : got.filter(Boolean);
     if (!n && !T[k].length) T[k] = D[k].slice();
   }
+  if (kind === 'brawl') T.label = ['blob', 'robot', 'box', 'cloud', 'beast'].includes(String(T.label).toLowerCase()) ? String(T.label).toLowerCase() : 'blob';
   if (kind === 'match' && !/\{secs\}/.test(T.win)) T.win = 'All eight pairs in {secs} seconds. ' + T.win;
   T.photoCaption = str(raw.photoCaption);
   const t = raw.target; T.target = t && isFinite(t.x) && isFinite(t.y) ? { x: Math.min(1, Math.max(0, +t.x)), y: Math.min(1, Math.max(0, +t.y)) } : null;
@@ -110,7 +112,7 @@ BB.normalize = function (raw) {
   party.palette = palette(raw.palette, BB.TITLE_PALETTE);
   party.wrongText = str(raw.wrongText, isms[0] ? `"${isms[0]}" Wrong. The room says try again.` : 'Wrong. The room says try again.');
 
-  const ctx = { name, ism: isms[0] || '', anyPhoto: ids[0] || null };
+  const ctx = { name, ism: isms[0] || '', anyPhoto: ids[0] || null, heroPhoto: hasPhoto(raw.heroPhoto) ? raw.heroPhoto : null };
   party.chapters = chaptersRaw.map((c, i) => {
     const p = palette(c.palette, BB.PALETTES[i % BB.PALETTES.length]);
     const a = c.arrival || {}, ch = c.choice || {};

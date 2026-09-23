@@ -92,30 +92,40 @@ Everything Claude returns is treated as untrusted: text is escaped, SVG goes
 through an allow-list sanitizer (`BB.sanitizeSVG` in `js/scenes.js`), and
 anything missing or malformed is repaired by `BB.normalize` in `js/party.js`.
 
-## The ten mini-games
+## The nineteen mini-games
 
 The mechanics never change. A party only supplies a skin with the same fields
 for every game: `kind, title, noun, intro, items[], emoji[], lines[], shout, label, win, photo`.
 What each field means per game is in `MINI_CATALOG` in `js/minigames.js` (that
-same text is what Claude reads). Nobody can lose any of them.
+same text is what Claude reads). Nobody can lose any of them; you can only be
+slow. Timed games rank the party leaderboard by time, score games by score.
 
-| kind | Game | From | Reskin examples |
-|------|------|------|-----------------|
-| `match` | Memory Match: 8 pairs against the clock, best time saved | chuck65 beer cans, shannon37 blue ribbons | concert tees, exes' names, lost things |
-| `flick` | Flick Shot: drag back, let go; misses twice, scores on the third | paper football, beer pong | free throw, champagne cork, parallel parking |
-| `echo` | Repeat After Me: watch three pads, play the pattern back, three rounds | shannon37 drum cadence | dance moves, coffee order, toddler demands |
-| `order` | Right Order: five steps, one order, no hints, a wrong press resets | chuck65 reactor startup | how they grill, how they tell That One Story |
-| `crowd` | Fill the Room: tap eight sections until the place roars | chuck65 Big House | wedding dance floor, their one-person show |
-| `chart` | Org Chart: build the org chart of their life, dotted lines included | chuck65 org chart | any job, any family |
-| `pin` | Pin the Thing: blindfolded, on a photo of them | chuck65 pin-the-hat | cowboy hat, crown, toupee |
-| `brawl` | Boss Fight: Street Fighter parody vs. their nemesis | chuck65 cactus fight | the inbox, IKEA instructions, the HOA |
-| `trek` | The Long Road: press to advance, an -ism interrupts, photo reveal | chuck65 climb + sneeze | marathon, commute, road trip |
-| `whack` | Whack-a-Thing: bonk ten of the right thing, leave the decoys | new | emails vs. compliments, weeds vs. tomatoes |
+| kind | Game | How it plays |
+|------|------|--------------|
+| `match` | Memory Match | 8 pairs against the clock; best time saved |
+| `echo` | Repeat After Me | three pads light up, play it back; three rounds |
+| `order` | Right Order | five steps, one order, no hints; a wrong press resets |
+| `whack` | Whack-a-Thing | bonk ten of the right thing, leave the decoys |
+| `brawl` | Boss Fight | block, dodge, punch when the guard drops; three rounds; their face on a drawn body, Claude picks the boss body (blob, robot, box, cloud, beast) |
+| `pin` | Pin the Thing | the thing circles their photo, drop it on the head; three tries, scored |
+| `clock` | Stop the Clock | stop the needle in the zone; three rounds, the zone shrinks |
+| `balance` | Balance the Tray | left/right taps keep a growing stack up; ten seconds a round |
+| `popcorn` | Popcorn | catch twenty things before they land, faster and faster |
+| `redlight` | Red Light, Green Light | hold to run, let go when the lookout turns |
+| `slice` | Cake Slice | tap the sweeping knife to cut equal slices; scored on evenness |
+| `balloon` | Inflate the Balloon | hold to inflate, release before the secret pop point |
+| `pinata` | Shake the Piñata | tap the swinging piñata; fifteen hits, things fly out |
+| `missing` | Who's Missing? | eight shown, lights out, one gone; six rounds |
+| `shell` | Shell Game | their face under a cup, cups shuffle; three rounds |
+| `count` | Count the Crowd | a one-second flash, how many? five rounds |
+| `draw` | Draw the Birthday Person | twenty seconds to draw them; in party mode every drawing lands on the host screen and the host crowns a winner |
+| `scramble` | Photo Scramble | a photo of them in nine sliding tiles |
+| `flappy` | Flappy Them | their face flaps through the gaps; fly again as often as you like |
 
 Try any of them with its stock skin: `play.html?party=demo&mini=brawl`.
 
-To add an eleventh: add an entry to `BB.MINI` (with `doText`, `build`, `init`
-and `act` or `step`), its defaults in `BB.miniDefaults`, its spec line in
+To add one: add an entry to `BB.MINI` (with `doText`, `build`, `init` and `act`
+or `step`), its defaults in `BB.miniDefaults`, its spec line in
 `BB.MINI_CATALOG`, its required array lengths in `MINI_NEEDS` (`js/party.js`),
 its `kind` in the schema enum in `js/claude.js`, and its CSS in `css/engine.css`.
 

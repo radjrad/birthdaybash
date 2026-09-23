@@ -176,79 +176,7 @@ p{margin:0}
 .mcard.matched .front{box-shadow:0 0 1rem .2rem var(--accent)}
 .mcard.matched{animation:pop .4s}
 
-/* 2 · flick — drag back and let go */
-.flick{position:relative; flex:1 1 auto; height:100%; touch-action:none; user-select:none; -webkit-user-select:none; cursor:grab}
-.flick svg{width:100%; height:100%}
-.flick .meter{transition:none}
-.flick .tgt{transition:transform .3s; transform-box:fill-box; transform-origin:center}
-.flick .tgt.scored{animation:pop .5s}
-
-/* 3 · echo — watch the pads, play them back */
-.echowrap{display:flex; align-items:center; justify-content:center; gap:2.5rem; width:100%; height:100%}
-.kit{display:flex; flex-direction:column; align-items:center; gap:1rem}
-.pads{display:flex; gap:1.4rem; justify-content:center}
-.epad{width:10.5rem; height:10.5rem; border-radius:50%; border:.4rem solid rgba(255,255,255,.7); box-shadow:0 .6rem 1.4rem rgba(0,0,0,.5); font-family:inherit; font-size:1.1rem; font-weight:900; color:#fff; cursor:pointer; transition:transform .08s, box-shadow .08s; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.1rem; padding:.4rem; text-shadow:0 1px 3px rgba(0,0,0,.6)}
-.epad .emo{font-size:2.6rem; line-height:1}
-.epad .k{font-size:.75rem; opacity:.7}
-.epad.p0{background:radial-gradient(circle at 50% 40%, var(--btn), var(--accent2) 120%); color:var(--btnText); text-shadow:none}
-.epad.p1{background:radial-gradient(circle at 50% 40%, var(--accent2), #000 160%)}
-.epad.p2{background:radial-gradient(circle at 50% 40%, #fff, #b9b9b9 90%); color:#222; text-shadow:none}
-.epad.lit{transform:scale(.93); box-shadow:0 0 1.6rem .5rem var(--accent); border-color:#fff}
-.epad:disabled{cursor:default}
-.beatdots{display:flex; gap:.5rem; min-height:1.2rem}
-.beatdots span{width:1rem; height:1rem; border-radius:50%; background:rgba(255,255,255,.2); border:.12rem solid rgba(255,255,255,.6); transition:background .15s}
-.beatdots span.cue{background:#fff}
-.beatdots span.hit{background:var(--accent); border-color:#fff}
-.round{font-size:1.1rem; font-weight:900; color:var(--accent); text-transform:uppercase; letter-spacing:.08em}
-
-/* 4 · order — five steps, one right order, no hints */
-.orderbox{display:grid; grid-template-columns:1.3fr 1fr; gap:2rem; width:100%; height:100%; align-items:center}
-.orderbox.bzzt{animation:bzzt .5s}
-.seq{display:flex; flex-direction:column; gap:.8rem; align-items:center}
-.seq .opts{width:100%}
-.lamps{display:flex; gap:.7rem}
-.lamp{width:1.4rem; height:1.4rem; border-radius:50%; background:#3a3a3a; border:.12rem solid #666; transition:background .3s, box-shadow .3s}
-.lamp.on{background:#8cff5a; box-shadow:0 0 .6rem #8cff5a}
-.gaugebox{display:flex; flex-direction:column; align-items:center; gap:.4rem}
-.gaugebox svg{width:22rem; height:auto}
-.needle{transform-origin:200px 200px; transform:rotate(-120deg); transition:transform .8s cubic-bezier(.3,1.4,.5,1)}
-.readout{font-size:1.4rem; font-weight:900; color:var(--accent); font-variant-numeric:tabular-nums}
-
-/* 5 · crowd — fill the eight sections */
-.section{fill:rgba(255,255,255,.22); stroke:rgba(0,0,0,.6); stroke-width:3; transition:fill .4s; cursor:pointer}
-@media (hover:hover){ .section:hover{fill:rgba(255,255,255,.4)} }
-.section.full{fill:var(--accent2); cursor:default}
-.fan{opacity:0; transform-box:fill-box; transform-origin:center; pointer-events:none}
-.fan.show{opacity:1; animation:pop .5s ease-out}
-.crowd.roar .fan{animation:bounce .6s ease-in-out}
-.crowd .stagefloor{fill:var(--bg2); stroke:#fff; stroke-width:3}
-.crowd .shout{stroke:var(--bg)}
-
-/* 6 · chart — the org chart of their life */
-.org{position:relative; width:100%; height:100%}
-.org svg{position:absolute; inset:0; width:100%; height:100%}
-.org line{stroke:var(--accent); stroke-width:5; stroke-linecap:round; opacity:0; transition:opacity .4s}
-.org line.show{opacity:1}
-.org line.dotted{stroke-dasharray:14 12}
-.obox{position:absolute; transform:translate(-50%,-50%) scale(.2); opacity:0; background:var(--card); border:.16rem solid var(--accent); border-radius:.8rem; padding:.5rem .9rem; text-align:center; min-width:11rem; max-width:15rem; transition:transform .45s cubic-bezier(.3,1.4,.5,1), opacity .3s; box-shadow:0 .6rem 1.4rem rgba(0,0,0,.5)}
-.obox.show{transform:translate(-50%,-50%) scale(1); opacity:1}
-.obox .t{font-size:1.15rem; font-weight:900}
-.obox .s{font-size:.9rem; opacity:.9}
-.obox.top{background:var(--accent); color:var(--btnText); border-color:#fff; min-width:14rem}
-.obox.top .t{font-size:1.5rem}
-.obox.dotted{border-style:dashed; background:rgba(0,0,0,.55)}
-
-/* 7 · pin — pin the thing on the birthday person */
-.pin{position:relative; height:100%; max-width:60%; cursor:crosshair; user-select:none; -webkit-user-select:none; touch-action:none; box-shadow:0 1rem 2.4rem rgba(0,0,0,.6); background:#111; overflow:visible; display:flex}
-.pin img{display:block; height:100%; width:auto; max-width:100%; object-fit:cover; pointer-events:none; border:.4rem solid #fbf7ef; box-sizing:border-box}
-.pin .blind{position:absolute; inset:0; background:var(--bg); display:flex; align-items:center; justify-content:center; text-align:center; font-size:1.4rem; font-weight:900; color:var(--accent); padding:1rem; transition:opacity .35s; pointer-events:none}
-.pin.pinned .blind{opacity:0}
-.pin .thing{position:absolute; font-size:5rem; line-height:1; transform:translate(-50%,-70%); pointer-events:none; filter:drop-shadow(0 .4rem .6rem rgba(0,0,0,.6))}
-.pin.pinned .thing{animation:popc2 .4s ease-out}
-.pin .target{position:absolute; width:7%; aspect-ratio:1; border:.2rem dashed rgba(255,255,255,.7); border-radius:50%; transform:translate(-50%,-50%); opacity:0; pointer-events:none}
-.pin.pinned .target{opacity:.85}
-
-/* 8 · brawl — the boss fight nobody can lose */
+/* brawl — block, dodge, punch */
 .arena{position:relative; width:100%; height:100%; overflow:hidden; border-radius:.8rem; background:linear-gradient(to bottom, rgba(0,0,0,.15), rgba(0,0,0,.35) 75%, var(--accent2) 75%, var(--bg)); box-shadow:inset 0 0 0 .2rem rgba(0,0,0,.35)}
 .hpbar{position:absolute; top:.6rem; width:32%; height:1.3rem; background:rgba(0,0,0,.6); border:.14rem solid #fff; border-radius:.4rem; overflow:hidden}
 .hpbar.you{left:1rem} .hpbar.foe{right:1rem}
@@ -256,46 +184,157 @@ p{margin:0}
 .hpbar.foe .fill{background:linear-gradient(#ff9a5a,#c0392b); margin-left:auto}
 .hpname{position:absolute; top:2.1rem; font-size:1rem; font-weight:900; text-shadow:0 2px 4px #000; text-transform:uppercase}
 .hpname.you{left:1rem} .hpname.foe{right:1rem; text-align:right}
-.fighter{position:absolute; bottom:22%; width:9rem; height:11rem; transform:translateX(0); will-change:transform; display:flex; flex-direction:column; align-items:center; justify-content:flex-end}
-.fighter .body{font-size:7.5rem; line-height:1; transition:transform .12s}
-.fighter .face{width:6.4rem; height:6.4rem; border-radius:50%; object-fit:cover; border:.3rem solid #fff; box-shadow:0 .4rem 1rem rgba(0,0,0,.6); margin-bottom:-.6rem; position:relative; z-index:1; background:#222}
-.fighter .glove{position:absolute; right:-1.4rem; bottom:2.2rem; font-size:3rem; transition:transform .12s}
-.fighter.punch .glove{transform:translate(2.4rem,-.4rem) rotate(-20deg) scale(1.2)}
-.fighter.hit .body{animation:hitflash .3s}
+.roundtag{position:absolute; top:.7rem; left:50%; transform:translateX(-50%); font-size:.9rem; font-weight:900; letter-spacing:.08em; text-transform:uppercase; opacity:.85}
+.fighter{position:absolute; bottom:22%; width:8rem; height:11rem; will-change:transform}
+.fighter svg{position:absolute; left:0; bottom:0; width:100%; height:100%; overflow:visible}
+.fighter .face{position:absolute; left:50%; top:-1.2rem; width:4.4rem; height:4.4rem; border-radius:50%; object-fit:cover; border:.25rem solid #fff; box-shadow:0 .4rem 1rem rgba(0,0,0,.6); transform:translateX(-50%); background:#222; z-index:1; display:flex; align-items:center; justify-content:center; font-size:3rem}
+.fighter .arm{transition:transform .12s; transform-box:fill-box; transform-origin:top center}
+.fighter.punch .arm-r{transform:translate(2.2rem, .3rem) rotate(-70deg)}
+.fighter.blocking .arm-l, .fighter.blocking .arm-r{transform:translateY(-2.6rem) rotate(0)}
+.fighter.blocking .face{box-shadow:0 0 0 .3rem #9ec9ff, 0 .4rem 1rem rgba(0,0,0,.6)}
+.fighter.hit svg, .fighter.hit .face{animation:hitflash .3s}
+.fighter.down{transform:translateX(var(--x, 0)) rotate(-80deg) translateY(1rem); transition:transform .4s}
 .fighter.ko{transition:transform .7s ease-in; transform:translateX(var(--x)) rotate(85deg) translateY(2rem)}
-.fighter.poke .body{animation:poke .3s}
+.fighter.foe .bossbody{transition:transform .15s}
+.fighter.foe.guard .shield{opacity:.95}
+.fighter.foe.guard .bossbody{transform:scale(.94)}
+.fighter.foe.wind .bossbody{animation:wobble .55s ease-in-out infinite; transform-origin:bottom center}
+.fighter.foe.open .bossbody{transform:rotate(14deg) translateY(.8rem); filter:brightness(1.3)}
+@keyframes wobble{0%,100%{transform:rotate(-8deg) scale(1.06)}50%{transform:rotate(8deg) scale(1.06)}}
 .bubble{position:absolute; bottom:70%; font-size:2.2rem; font-weight:900; color:#fff; -webkit-text-stroke:.12rem #000; text-shadow:0 .2rem 0 #000; opacity:0; pointer-events:none; white-space:nowrap}
 .bubble.show{animation:bubble .8s ease-out forwards}
 .fightmsg{position:absolute; left:50%; top:30%; transform:translate(-50%,-50%); font-size:3.4rem; font-weight:900; color:var(--accent); -webkit-text-stroke:.14rem #000; text-shadow:0 .3rem 0 #000; opacity:0; pointer-events:none; white-space:nowrap}
 .fightmsg.show{animation:popc .5s ease-out forwards}
-.pad{display:flex; gap:1rem; align-items:center}
-.pad .btn{min-width:8rem}
+.pad{display:flex; gap:.6rem; align-items:center}
+.pad .btn{min-width:5rem}
 
-/* 9 · trek — the long road, with one interruption */
-.trek{position:relative; width:100%; height:100%}
-.trek > svg{position:absolute; inset:0; width:100%; height:100%; transition:opacity .5s}
-.trek.revealed > svg{opacity:0}
-.trek .hill{fill:var(--accent2)} .trek .hill2{fill:var(--bg2)} .trek .flagc{fill:var(--accent)}
-#walker{transition:transform .8s ease-in-out}
-.trailseg{stroke:rgba(255,255,255,.45); stroke-width:6; stroke-dasharray:14 14; fill:none; stroke-linecap:round}
-.trailseg.done{stroke:var(--accent); stroke-dasharray:none}
-.dust{opacity:0; transform-box:fill-box; transform-origin:center}
-.dust.show{animation:dust 1.2s ease-out}
-.reveal{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.5rem; opacity:0; transform:scale(.9); transition:opacity .7s, transform .7s; pointer-events:none}
-.reveal.show{opacity:1; transform:scale(1)}
-.reveal .frame{padding:.5rem; background:#fbf7ef; box-shadow:0 1rem 2.4rem rgba(0,0,0,.6); border-radius:.2rem}
-.reveal img{display:block; height:46vh; width:auto; max-width:64vw; object-fit:cover}
-.reveal .bigemo{font-size:9rem; line-height:1}
-.reveal .cap{font-size:1.15rem; font-weight:800; text-shadow:0 2px 6px #000; text-align:center; max-width:40rem}
+/* pin — the thing circles; drop it */
+.pin{position:relative; height:100%; max-width:60%; cursor:crosshair; user-select:none; -webkit-user-select:none; touch-action:none; box-shadow:0 1rem 2.4rem rgba(0,0,0,.6); background:#111; overflow:visible; display:flex}
+.pin img{display:block; height:100%; width:auto; max-width:100%; object-fit:cover; pointer-events:none; border:.4rem solid #fbf7ef; box-sizing:border-box}
+.pin .thing, .pin .ghost{position:absolute; font-size:5rem; line-height:1; transform:translate(-50%,-70%); pointer-events:none; filter:drop-shadow(0 .4rem .6rem rgba(0,0,0,.6))}
+.pin .ghost{opacity:0; transition:opacity .3s}
+.pin .ghost.show{opacity:.55}
+.pin.pinned .thing{animation:popc2 .4s ease-out}
+.pin .target{position:absolute; width:7%; aspect-ratio:1; border:.2rem dashed rgba(255,255,255,.7); border-radius:50%; transform:translate(-50%,-50%); opacity:0; pointer-events:none; transition:opacity .3s}
+.pin.pinned .target{opacity:.85}
 
-/* 10 · whack — tap the right thing, leave the wrong thing alone */
-.whack{display:grid; grid-template-columns:repeat(3, 1fr); gap:1rem 1.6rem; height:100%; aspect-ratio:1.25/1; max-width:100%}
-.hole{position:relative; border:0; padding:0; border-radius:50% 50% 46% 46%; background:radial-gradient(ellipse at 50% 78%, #000 0 38%, rgba(0,0,0,.55) 39% 60%, transparent 61%); cursor:pointer; overflow:hidden; font-family:inherit}
-.hole .pop{position:absolute; left:50%; bottom:16%; font-size:min(11vh, 5.6rem); line-height:1; transform:translate(-50%, 120%); transition:transform .16s ease-out}
-.hole.up .pop{transform:translate(-50%, 0)}
-.hole.bonk .pop{transform:translate(-50%, 30%) scale(1.1, .6); transition:transform .08s}
-.hole .key{position:absolute; left:50%; bottom:2%; transform:translateX(-50%); font-size:.7rem; font-weight:900; color:#fff; opacity:.55}
-.hole.hi{outline:.2rem solid #fff; outline-offset:-.3rem}
+/* clock */
+.dialwrap{height:100%; aspect-ratio:1; max-width:100%; cursor:pointer; touch-action:manipulation}
+.dial{width:100%; height:100%}
+.dial .needle{transform-origin:200px 200px}
+
+/* balance */
+.balwrap{display:flex; align-items:center; justify-content:center; gap:2rem; width:100%; height:100%}
+.balfield{position:relative; height:100%; aspect-ratio:1; max-width:100%; touch-action:manipulation; cursor:pointer; display:flex; align-items:flex-end; justify-content:center}
+.balfield .hand{font-size:5rem; line-height:1; margin-bottom:-.3rem}
+.stack{position:absolute; bottom:4.2rem; left:50%; width:8rem; margin-left:-4rem; display:flex; flex-direction:column-reverse; align-items:center; transform-origin:bottom center; transition:transform .05s linear}
+.stack .item{font-size:3.6rem; line-height:1; margin-top:-.4rem}
+.stack .tray{width:9rem; height:.6rem; border-radius:.3rem; background:#d9b48c; box-shadow:0 .2rem .4rem rgba(0,0,0,.5)}
+.stack.fall{transition:transform .5s ease-in; transform:rotate(95deg) translateY(2rem) !important; opacity:.5}
+
+/* popcorn */
+.popfield{position:relative; height:100%; flex:1 1 auto; max-width:46rem; overflow:hidden; border-radius:.8rem; background:rgba(0,0,0,.25); touch-action:manipulation}
+.popfield .pan{position:absolute; left:50%; bottom:.2rem; transform:translateX(-50%); font-size:5rem; line-height:1; pointer-events:none}
+.kernel{position:absolute; left:0; top:0; font-size:3rem; line-height:1; cursor:pointer; user-select:none; -webkit-user-select:none; will-change:transform; padding:.2rem}
+.kernel.caught{animation:pop .25s reverse; opacity:0}
+
+/* red light, green light */
+.rlwrap{position:relative; width:100%; height:100%; display:flex; flex-direction:column; justify-content:flex-end; gap:1rem; padding:1rem}
+.lookout{position:absolute; right:1.5rem; top:.5rem; font-size:6rem; line-height:1; transition:transform .25s; filter:grayscale(1) opacity(.6)}
+.lookout[data-face=turning]{transform:rotate(-40deg) scale(1.1); filter:grayscale(.4)}
+.lookout[data-face=watching]{transform:rotate(0) scale(1.25); filter:none}
+.light{position:absolute; left:1.5rem; top:1rem; width:3rem; height:3rem; border-radius:50%; background:#2ecc71; box-shadow:0 0 1.2rem #2ecc71; transition:background .15s, box-shadow .15s}
+.light[data-phase=turning]{background:#f1c40f; box-shadow:0 0 1.2rem #f1c40f}
+.light[data-phase=red]{background:#e74c3c; box-shadow:0 0 1.6rem #e74c3c}
+.track{position:relative; height:7rem; border-radius:.8rem; background:repeating-linear-gradient(90deg, rgba(255,255,255,.12) 0 2rem, transparent 2rem 4rem), rgba(0,0,0,.35)}
+.track .runner{position:absolute; left:0; bottom:.6rem; font-size:4.6rem; line-height:1; transition:none}
+.track .runner.go{animation:bob .3s ease-in-out infinite}
+.track .runner.win{animation:pop .6s}
+.track .finish{position:absolute; right:.4rem; bottom:.6rem; font-size:4.6rem; line-height:1}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-.6rem)}}
+.caughtmsg{position:absolute; left:50%; top:35%; transform:translate(-50%,-50%); font-size:2.6rem; font-weight:900; color:#ff6b6b; -webkit-text-stroke:.1rem #000; opacity:0; pointer-events:none}
+.caughtmsg.show{animation:popc .7s ease-out}
+
+/* cake slice */
+.cakewrap{height:100%; flex:1 1 auto; max-width:50rem; display:flex; align-items:center; cursor:pointer; touch-action:manipulation}
+.cake{position:relative; width:100%; height:44%; border-radius:1rem; box-shadow:inset 0 -1.2rem 0 rgba(0,0,0,.25), 0 .8rem 1.6rem rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center}
+.cake .cakeemo{font-size:5rem; opacity:.5}
+.cake .knife{position:absolute; top:-3.4rem; left:0; font-size:3.4rem; line-height:1; transform:translateX(-50%) rotate(90deg); pointer-events:none}
+.cutline{position:absolute; top:0; bottom:0; width:.3rem; margin-left:-.15rem; background:#fff; box-shadow:0 0 .4rem #000; animation:pop .2s}
+
+/* balloon */
+.balloonfield{position:relative; height:100%; flex:1 1 auto; max-width:40rem; display:flex; align-items:center; justify-content:center}
+.balloon{font-size:4rem; line-height:1; transition:transform .05s linear; transform-origin:center 80%}
+.balloon.gone{opacity:0}
+.balloonfield .pop{position:absolute; font-size:9rem; opacity:0; pointer-events:none}
+.balloonfield .pop.show{animation:popc .5s ease-out forwards; position:absolute; left:50%; top:50%}
+.runbtn{user-select:none; -webkit-user-select:none; touch-action:none}
+
+/* piñata */
+.pinfield{position:relative; height:100%; flex:1 1 auto; max-width:46rem; overflow:hidden}
+.pinfield .rope{position:absolute; left:50%; top:0; width:.35rem; height:36%; margin-left:-.17rem; background:#d9b48c; transform-origin:top center}
+.pinata{position:absolute; left:50%; top:36%; width:8rem; height:8rem; margin-left:-4rem; margin-top:-1rem; font-size:7rem; line-height:1; display:flex; align-items:flex-start; justify-content:center; transform-origin:50% -100%; cursor:pointer; touch-action:manipulation; user-select:none; -webkit-user-select:none}
+.pinata.hit{animation:shake .3s}
+.pinata.broke{animation:spin 1s linear; opacity:.35}
+.candy{position:absolute; font-size:1.2rem; font-weight:900; color:#fff; text-shadow:0 .15rem 0 #000; pointer-events:none; animation:candy 1.2s ease-out forwards; white-space:nowrap}
+@keyframes candy{0%{transform:translate(-50%,0) scale(.5); opacity:0}20%{opacity:1}100%{transform:translate(calc(-50% + var(--dx)), 14rem) rotate(20deg); opacity:0}}
+
+/* who's missing */
+.memgrid{display:grid; grid-template-columns:repeat(4, 8rem); gap:.7rem; transition:filter .3s}
+.memgrid.dark{filter:brightness(0)}
+.memcell{background:rgba(0,0,0,.45); border:.12rem solid rgba(255,255,255,.3); border-radius:.8rem; height:7rem; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.2rem}
+.memcell .emo{font-size:2.8rem; line-height:1}
+.memcell .nm{font-size:.85rem; font-weight:800}
+.choices{display:flex; flex-direction:column; gap:.5rem; width:16rem}
+.choices .opt{min-height:2.6rem; font-size:.95rem}
+
+/* shell game */
+.shellfield{display:flex; gap:2rem; height:100%; align-items:center}
+.cup{position:relative; width:9rem; height:12rem; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; cursor:pointer; touch-action:manipulation}
+.cup .cupemo{font-size:7rem; line-height:1; position:relative; z-index:2; transition:transform .3s}
+.cup.up .cupemo{transform:translateY(-4.5rem)}
+.cup.wrong .cupemo{filter:grayscale(1)}
+.cup .under{position:absolute; bottom:.4rem; z-index:1}
+.tokenpic{width:4.4rem; height:4.4rem; border-radius:50%; object-fit:cover; border:.2rem solid #fff; font-size:3.4rem; display:inline-flex; align-items:center; justify-content:center; line-height:1}
+.cup .key{position:absolute; bottom:-1.4rem; font-size:.75rem; opacity:.6}
+
+/* count the crowd */
+.countfield{position:relative; height:100%; flex:1 1 auto; max-width:50rem; display:flex; flex-direction:column; align-items:center; justify-content:center}
+.flashwrap{position:absolute; inset:0}
+.flashwrap .cnt{position:absolute; font-size:2.6rem; line-height:1; transform:translate(-50%,-50%)}
+.countopts{width:min(30rem, 100%)}
+
+/* draw */
+.drawwrap{display:flex; align-items:center; justify-content:center; gap:2rem; width:100%; height:100%; flex-wrap:wrap}
+.drawside{display:flex; flex-direction:column; align-items:center; gap:.5rem; height:100%}
+.sketch{height:calc(100% - 3rem); aspect-ratio:1; max-width:100%; background:#1b2233; border:.3rem solid #fbf7ef; border-radius:.4rem; touch-action:none; cursor:crosshair}
+.swatches{display:flex; gap:.5rem}
+.sw{width:2.2rem; height:2.2rem; border-radius:50%; border:.2rem solid rgba(255,255,255,.5); cursor:pointer; padding:0}
+.sw.on{border-color:#fff; transform:scale(1.15); box-shadow:0 0 0 .15rem #000}
+.sw.clear{background:#333; color:#fff; font-size:1.2rem; font-weight:900}
+.refpic{width:8rem; height:8rem; object-fit:cover; border:.2rem solid #fbf7ef; border-radius:.3rem}
+.gallery{flex:1 0 100%; text-align:center}
+.galrow{display:flex; flex-wrap:wrap; gap:.6rem; justify-content:center}
+.galpic{margin:0; cursor:pointer; text-align:center; font-size:.8rem; font-weight:800}
+.galpic img{width:6rem; height:6rem; border:.2rem solid #fbf7ef; border-radius:.3rem; display:block}
+.galpic.crowned img{border-color:var(--accent); box-shadow:0 0 1rem var(--accent)}
+.galpic.crowned figcaption::before{content:"👑 "}
+
+/* photo scramble */
+.puzzle{position:relative; height:100%; aspect-ratio:1; max-width:100%; background:rgba(0,0,0,.5); border:.3rem solid #fbf7ef; touch-action:manipulation}
+.tile{position:absolute; left:0; top:0; width:33.34%; height:33.34%; background-image:var(--img); background-size:300% 300%; box-shadow:inset 0 0 0 .1rem rgba(0,0,0,.5); transition:transform .12s; cursor:pointer}
+.tile.gap{visibility:hidden}
+.puzzle.solved .tile{box-shadow:none; visibility:visible}
+
+/* flappy */
+.sky{position:relative; height:100%; flex:1 1 auto; max-width:46rem; overflow:hidden; border-radius:.8rem; background:linear-gradient(to bottom, rgba(255,255,255,.15), rgba(0,0,0,.35)); touch-action:manipulation; cursor:pointer; user-select:none; -webkit-user-select:none}
+.bird{position:absolute; left:22%; top:45%; width:3.6rem; height:3.6rem; transition:transform .1s; z-index:2}
+.birdpic{width:100%; height:100%; border-radius:50%; object-fit:cover; border:.2rem solid #fff; font-size:2.8rem; display:flex; align-items:center; justify-content:center; line-height:1}
+.bird.crash{animation:spin .8s linear; filter:grayscale(.6)}
+.pipe{position:absolute; top:0; bottom:0; width:64px; left:100%}
+.pipe .top, .pipe .bot{position:absolute; left:0; width:100%; background:var(--accent2); border:.2rem solid rgba(0,0,0,.4); display:flex; align-items:flex-end; justify-content:center; font-size:2rem; overflow:hidden}
+.pipe .top{top:0} .pipe .bot{bottom:0; align-items:flex-start}
+.tapmsg{position:absolute; left:50%; top:30%; transform:translateX(-50%); font-weight:900; font-size:1.3rem; text-shadow:0 2px 6px #000; pointer-events:none}
 
 /* ---------- Badge ---------- */
 .badge{display:inline-flex; flex-direction:column; align-items:center; gap:.3rem}
@@ -490,44 +529,40 @@ body.closing #mp{display:none}
   .mcard .front{ font-size:.66rem; padding:.2rem }
   .mcard .front .emo{ font-size:1.2rem }
 
-  .flick{ width:100%; height:auto; flex:0 0 auto }
-  .flick svg{ height:auto }
-
+  .arena{ height:62vw; min-height:15rem }
+  .fighter{ width:5.6rem; height:7.6rem }
+  .fighter .face{ width:3.2rem; height:3.2rem; font-size:2.2rem }
+  .fightmsg{ font-size:1.7rem; white-space:normal; width:90%; text-align:center }
+  .bubble{ font-size:1.4rem }
+  .hpname{ font-size:.7rem; max-width:45% }
+  .pad{ width:100%; gap:.4rem }
+  .pad .btn{ min-width:0; flex:1 1 0; padding:.5rem .3rem }
+  .pin{ height:auto; width:100%; max-width:22rem }
+  .pin img{ height:auto; width:100% }
+  .pin .thing, .pin .ghost{ font-size:3.6rem }
+  .dialwrap{ width:min(80vw, 22rem); height:auto }
+  .balwrap{ flex-direction:column; height:auto }
+  .balfield{ width:min(80vw, 20rem); height:20rem }
+  .popfield, .pinfield, .sky, .countfield{ width:100%; height:60vw; min-height:16rem; flex:0 0 auto }
+  .rlwrap{ height:auto; min-height:16rem; padding:.6rem }
+  .lookout{ font-size:4rem }
+  .cakewrap{ width:100%; height:12rem }
+  .balloonfield{ width:100%; height:16rem }
+  .memgrid{ grid-template-columns:repeat(4, 1fr); width:100% }
+  .memcell{ height:5.2rem } .memcell .emo{ font-size:2rem } .memcell .nm{ font-size:.7rem }
+  .choices{ width:100% }
+  .shellfield{ gap:.6rem; width:100%; justify-content:center; height:auto; padding-bottom:1.4rem }
+  .cup{ width:26vw; height:9rem } .cup .cupemo{ font-size:4.6rem }
+  .drawside{ height:auto; width:100% } .sketch{ height:auto; width:min(88vw, 22rem) }
+  .puzzle{ height:auto; width:min(88vw, 22rem) }
   .echowrap{ flex-direction:column; gap:1rem; height:auto }
   .pads{ gap:.7rem }
   .epad{ width:27vw; height:27vw; max-width:8rem; max-height:8rem; font-size:.8rem; border-width:.3rem }
   .epad .emo{ font-size:1.8rem }
   .epad .k{ display:none }
-
   .orderbox{ grid-template-columns:1fr; gap:.8rem; height:auto }
   .gaugebox{ order:-1 }
   .gaugebox svg{ width:11rem }
-
-  .org{ height:auto; display:flex; flex-direction:column; gap:.5rem; align-items:center }
-  .org svg{ display:none }
-  .obox{ position:static; transform:scale(.2); min-width:0; max-width:none; width:100%; display:none }
-  .obox.show{ transform:scale(1); display:block }
-  .obox.top{ min-width:0 }
-
-  .pin{ height:auto; width:100%; max-width:22rem }
-  .pin img{ height:auto; width:100% }
-  .pin .thing{ font-size:3.6rem }
-
-  .arena{ height:62vw; min-height:15rem }
-  .fighter{ width:6rem; height:8rem }
-  .fighter .body{ font-size:4.6rem }
-  .fighter .face{ width:4rem; height:4rem }
-  .fighter .glove{ font-size:2rem; right:-.8rem; bottom:1.4rem }
-  .fightmsg{ font-size:1.7rem; white-space:normal; width:90%; text-align:center }
-  .bubble{ font-size:1.4rem }
-  .hpname{ font-size:.7rem; max-width:45% }
-  .pad{ width:100%; gap:.5rem }
-  .pad .btn{ min-width:0; flex:1 1 0; padding:.5rem .4rem }
-
-  .trek{ height:70vw; min-height:16rem }
-  .reveal img{ height:auto; max-height:60vw; max-width:84vw }
-  .reveal .bigemo{ font-size:6rem }
-
   .whack{ height:auto; width:100%; aspect-ratio:1/1; gap:.5rem }
   .hole .pop{ font-size:15vw }
   .hole .key{ display:none }

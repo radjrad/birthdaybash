@@ -71,7 +71,7 @@ const optsHTML = (labels) => `<div class="opts n${labels.length}">${labels.map((
 const NEXT = (label = 'Continue →', hidden = false) => `<button class="btn primary continue" data-action="next"${hidden ? ' hidden' : ''}>${esc(label)}</button>`;
 
 function miniCtx(s) {
-  return { src, palette: chapterOf(s).palette, partyId: party.id, touch: TOUCH, heroPhoto: party.heroPhoto, polaroid };
+  return { src, palette: chapterOf(s).palette, partyId: party.id, touch: TOUCH, heroPhoto: party.heroPhoto, polaroid, mp: BB.mp };
 }
 
 /* ==================================================================
@@ -188,7 +188,7 @@ function miniApi(el) {
   const note = el.querySelector('.note');
   return {
     note(txt, big) { note.textContent = txt || ''; note.classList.toggle('big', !!big); },
-    finish(txt, doText) {
+    finish(txt, doText, extra) {
       note.textContent = txt || ''; note.classList.remove('big');
       el.querySelector('.do').textContent = doText || `${PRESS} Continue.`;
       const stepBtn = el.querySelector('[data-action="step"]');
@@ -196,7 +196,7 @@ function miniApi(el) {
       el.querySelectorAll('.actions [data-action="next"]').forEach(b => b.hidden = false);
       el.querySelectorAll('.actions .pad, .actions .skip').forEach(p => p.hidden = true);
       setHi(0); showOnPhone(note);
-      if (BB.mp && cur) BB.mp.finished(cur.screen);
+      if (BB.mp && cur) BB.mp.finished(cur.screen, extra);
     },
     reset(txt, doText) { note.textContent = txt || ''; note.classList.remove('big'); el.querySelector('.do').textContent = doText; el.querySelectorAll('.actions [data-action="next"]').forEach(b => b.hidden = true); },
   };
@@ -305,6 +305,7 @@ function go(i) {
   stage.appendChild(el);
   cur = { screen, el, local:{} };
   el.querySelectorAll('img').forEach(img => img.addEventListener('error', () => { const f = img.closest('figure, .frame'); if (f) f.hidden = true; else img.hidden = true; }));
+  if (BB.mp) BB.mp.onGallery = null;            /* a game that wants room drawings re-registers in its init */
   if (INIT[screen.type]) INIT[screen.type](screen, el, cur.local);
   void el.offsetWidth;                            /* force layout so the fade-in transition runs */
   el.classList.add('in');

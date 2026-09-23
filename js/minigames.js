@@ -1,7 +1,7 @@
 /* ==================================================================
    BIRTHDAY BASH — minigames.js
-   Ten mini-games. The mechanics never change; a party only supplies a
-   "skin" — words and emoji — so a new birthday never needs new code.
+   Nineteen mini-games. The mechanics never change; a party only supplies
+   a "skin" — words and emoji — so a new birthday never needs new code.
 
    Every skin has the same shape:
      { kind, title, noun, intro, items[], emoji[], lines[], shout, label, win, photo }
@@ -11,7 +11,9 @@
    Every mini has build(T, ctx), init(el, local, api, T, ctx) and either
    step(el, local, T) (one big button) or act(action, btn, el, local, api, T)
    for custom clicks. The api object updates the note / button and
-   finishes the screen. Nobody can lose any of these.
+   finishes the screen: api.finish(text, doText, { score, unit }) reports a
+   score to the party leaderboard; without a score the game is timed.
+   Nobody can lose any of these; you can only be slow.
    ================================================================== */
 (() => {
 'use strict';
@@ -21,32 +23,71 @@ const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&
 BB.esc = esc;
 const shuffle = (arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const rnd = (a, b) => a + Math.random() * (b - a);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const fill = (tpl, vars) => String(tpl).replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m));
 const Sound = () => BB.Sound, Confetti = () => BB.Confetti;
 const CONTINUE = `<button class="btn primary big continue" data-action="next" hidden>Continue →</button>`;
 const CARD_COLORS = ['#c0392b', '#2e7d32', '#1e6fb0', '#e67e22', '#8e44ad', '#00897b', '#d9a400', '#5b3a1e'];
+const EMO = (e, cls = '') => `<span class="emo ${cls}">${esc(e)}</span>`;
+/* the birthday person's face, or an emoji, as a round token */
+const faceHTML = (ctx, fallback, cls = 'token') => ctx.heroPhoto ? `<img class="${cls} facepic" src="${esc(ctx.src(ctx.heroPhoto))}" alt="">` : `<span class="${cls} emo">${esc(fallback)}</span>`;
+/* a held button or key: onDown / onUp */
+function hold(el, local, onDown, onUp, sel) {
+  const tgt = sel ? el.querySelector(sel) : el;
+  tgt.addEventListener('pointerdown', (e) => { e.preventDefault(); onDown(); }); ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => tgt.addEventListener(t, onUp));
+  local.onKey = (k) => { if (k === ' ' || k === 'Enter') { if (!local._held) { local._held = true; onDown(); } return true; } return false; };
+  local.onKeyUp = (k) => { if ((k === ' ' || k === 'Enter') && local._held) { local._held = false; onUp(); } };
+}
+/* one rAF loop that stops when the screen is left */
+function loop(local, fn) {
+  let last = performance.now(); local.alive = true;
+  const step = (now) => { if (!local.alive) return; const dt = Math.min(.05, (now - last) / 1000); last = now; fn(dt, now); schedule(); };
+  const schedule = () => { if (document.hidden) setTimeout(() => step(performance.now()), 16); else requestAnimationFrame(step); };   /* keep ticking when the page is covered */
+  schedule();
+  const prev = local.cleanup; local.cleanup = () => { local.alive = false; if (prev) prev(); };
+}
+const timers = (local) => { local.timers = local.timers || []; const prev = local.cleanup; local.cleanup = () => { local.timers.forEach(clearTimeout); if (prev) prev(); }; return (fn, ms) => { const t = setTimeout(fn, ms); local.timers.push(t); return t; }; };
 
 BB.MINI_CATALOG = [
   { kind:'match', name:'Memory Match', blurb:'Flip cards to find 8 pairs against the clock. Best time is saved.',
     spec:'noun = plural name of the cards ("blue ribbons", "beer cans"). items = exactly 8 short pair labels (max 18 chars each) drawn from the chapter. emoji = 8 emoji, one per label. label = one emoji for the card backs. win = a line that contains {secs}.' },
-  { kind:'flick', name:'Flick Shot', blurb:'Drag back and let go. Misses twice, scores on the third. Paper football, beer pong, free throw...',
-    spec:'noun = the thing being launched ("ping-pong ball"). emoji[0] = the projectile, emoji[1] = the target. label = short text printed on the table/field (max 28 chars, caps). lines[0], lines[1] = the two misses, roast-flavored. shout = 1-2 word yell on the score ("SPLASH!"). win = the line after it finally goes in.' },
   { kind:'echo', name:'Repeat After Me', blurb:'Three pads light up in a pattern; play it back. Three rounds, getting longer.',
     spec:'noun = what a pattern is called ("cadence", "order", "combo"). items = 3 pad names (max 10 chars). emoji = 3 emoji, one per pad. lines[0], lines[1] = praise after rounds one and two; lines[2] = the line when they get it wrong. win = line after round three.' },
   { kind:'order', name:'Right Order', blurb:'Five steps, one correct order, no hints. A wrong press resets everything.',
     spec:'items = exactly 5 steps IN THE CORRECT ORDER (max 38 chars each) of some procedure from their life (their morning routine, how they grill, how they tell That One Story). label = gauge caption in caps (max 16 chars, e.g. "GRILL TEMP"). lines[0..3] = progress lines after steps 1-4; lines[4] = the wrong-order line. shout = banner when done. win = closing line.' },
-  { kind:'crowd', name:'Fill the Room', blurb:'Tap eight sections of an arena until the whole place is packed and roaring.',
-    spec:'noun = what is being filled ("the stadium", "the wedding dance floor"). label = what the middle is (max 14 chars caps, "THE STAGE"). emoji[0] = optional emoji for the crowd. lines = 7 running-commentary lines, one after each of the first seven sections. shout = what the full room yells (max 12 chars). win = closing line.' },
-  { kind:'chart', name:'Org Chart', blurb:'Build the org chart of their life one box at a time, dotted lines included.',
-    spec:'items = exactly 7 boxes, each "Title | subtitle": item 0 is the birthday person with a fake job title; items 1-4 are their four "departments" (family, hobbies, friend group...); items 5-6 are dotted-line boxes (the real boss, the thing they answer to). lines = 7 notes, one read out as each box appears. win = closing line.' },
-  { kind:'pin', name:'Pin the Thing', blurb:'Blindfolded pin-the-tail, but on a photo of the birthday person. Needs a photo.', needsPhoto:true,
-    spec:'noun = the thing being pinned ("cowboy hat"). emoji[0] = that thing as one emoji. lines = exactly 4: perfect placement, close, too low, way off. label = caption for the side card. photo = id of a clear head-and-shoulders photo of the birthday person.' },
-  { kind:'brawl', name:'Boss Fight', blurb:'A Street Fighter parody against their sworn nemesis. They cannot lose.',
-    spec:'items[0] = the nemesis name in caps (their inbox, a barrel cactus, IKEA instructions, the Cardinals offense). items[1..5] = five comic-book hit words. emoji[0] = the nemesis as one emoji, emoji[1] = one emoji for the hero body. lines = 2-3 feeble attack words from the nemesis. shout = the K.O. line (max 40 chars). win = closing line.' },
-  { kind:'trek', name:'The Long Road', blurb:'Press to advance up the trail. Halfway there, an -ism interrupts. Photo reveal at the top.',
-    spec:'lines = exactly 8: lines[0..2] three steps of the journey, lines[3] the build-up to an interruption (a sneeze, a phone call, a tangent), lines[4] the -ism itself in CAPS, lines[5..6] two more steps, lines[7] the arrival. label = the text on the interruption button (the -ism, max 20 chars). emoji[0] = the traveler, emoji[1] = a big emoji to reveal if there is no photo. photo = id of the photo revealed at the top. win = caption for that reveal.' },
   { kind:'whack', name:'Whack-a-Thing', blurb:'Things pop up in nine holes. Bonk ten of the right ones; leave the decoys alone.',
     spec:'items[0] = plural name of the thing to bonk, items[1] = plural name of the decoy to leave alone. emoji[0] = the thing, emoji[1] = the decoy. lines = 2-3 lines for bonking a decoy. shout = banner when done. win = closing line.' },
+  { kind:'brawl', name:'Boss Fight', blurb:'A fighting-game parody against their nemesis: block, dodge, punch when it drops its guard. Three rounds.',
+    spec:'items[0] = the nemesis name in caps (their inbox, the HOA, IKEA instructions, the Cardinals offense). items[1..5] = five comic-book hit words. label = the boss body, one of: blob, robot, box, cloud, beast. emoji[0] = the boss face (one emoji drawn on the body), emoji[1] = an accessory it holds (one emoji). lines = 2-3 taunts the boss says when it lands a hit. shout = the K.O. line (max 40 chars). win = closing line.' },
+  { kind:'pin', name:'Pin the Thing', blurb:'The thing circles the birthday person\'s photo; drop it on the top of their head. Three tries.', needsPhoto:true,
+    spec:'noun = the thing being pinned ("cowboy hat"). emoji[0] = that thing as one emoji. lines = exactly 4: perfect placement, close, too low, way off. label = caption for the side card. photo = id of a clear head-and-shoulders photo of the birthday person.' },
+  { kind:'clock', name:'Stop the Clock', blurb:'A needle whips around a dial; stop it in the green zone. Three rounds, the zone shrinks.',
+    spec:'noun = what the needle measures ("grill temperature", "the moment to leave a party"). label = dial caption in caps (max 16 chars). items = exactly 3 zone names, one per round (max 14 chars, e.g. "Rare", "Medium", "Well done"). lines[0] = a perfect stop, lines[1] = a near miss, lines[2] = way off. win = closing line that contains {score}.' },
+  { kind:'balance', name:'Balance the Tray', blurb:'Keep a wobbling stack from tipping with left/right taps. Three rounds, the stack grows.',
+    spec:'noun = the tray ("the tray", "the top bunk", "the car roof"). emoji = 6 emoji for the things stacked, lightest first. lines[0] = what happens when it tips, lines[1..2] = praise after rounds one and two. win = closing line.' },
+  { kind:'popcorn', name:'Popcorn', blurb:'Things pop up from the pan faster and faster; catch each one before it lands. Twenty in all.',
+    spec:'noun = plural of the thing popping ("shrimp tacos"). emoji[0] = the thing, emoji[1] = the pan or bowl it comes from. lines = 2 lines for a miss. win = closing line that contains {score}.' },
+  { kind:'redlight', name:'Red Light, Green Light', blurb:'Hold to run for the finish; let go the instant the lookout turns around. Caught means back to the start.',
+    spec:'items[0] = who the lookout is (max 18 chars, "MOM", "THE BOSS", "THE HOA"). emoji[0] = the runner, emoji[1] = the lookout, emoji[2] = the finish line prize. lines = 2-3 lines for getting caught. win = closing line.' },
+  { kind:'slice', name:'Cake Slice', blurb:'A knife sweeps back and forth; tap to cut equal slices for everyone. Scored on evenness.',
+    spec:'noun = the thing being cut ("the birthday cake", "the last pizza"). emoji[0] = it as one emoji. label = who it is for, in caps (max 16 chars, "FOR 5 GUESTS"). lines[0] = an even cut, lines[1] = an uneven one. win = closing line that contains {score}.' },
+  { kind:'balloon', name:'Inflate the Balloon', blurb:'Hold to inflate, let go before it pops. Bigger is better; the pop point is secret. Three rounds.',
+    spec:'noun = the thing being inflated ("the pool floatie", "his ego"). emoji[0] = it as one emoji. lines[0] = it popped, lines[1] = a safe release. win = closing line that contains {score}.' },
+  { kind:'pinata', name:'Shake the Piñata', blurb:'Tap the swinging piñata; every hit knocks something out. Fifteen hits cracks it open.',
+    spec:'noun = the piñata ("the piñata", "the vending machine that ate his dollar"). emoji[0] = it as one emoji. items = 6-10 short things that fly out on each hit (the -isms, their snacks, max 16 chars). lines = 2 hit words. shout = banner when it breaks. win = closing line.' },
+  { kind:'missing', name:"Who's Missing?", blurb:'Eight things are shown, the lights go out, one is gone. Which? Six rounds, faster each time.',
+    spec:'noun = the group ("the Damn Fools", "the fridge"). items = exactly 8 names (max 12 chars). emoji = 8 emoji, one per name. lines[0] = right, lines[1] = wrong. win = closing line.' },
+  { kind:'shell', name:'Shell Game', blurb:'Their face hides under one of three cups; the cups shuffle. Where did they go? Three rounds, faster.',
+    spec:'noun = the cups ("coffee cups", "Solo cups", "hard hats"). emoji[0] = the cup as one emoji, emoji[1] = what hides under it if there is no photo. lines[0] = found, lines[1] = wrong cup. win = closing line.' },
+  { kind:'count', name:'Count the Crowd', blurb:'A one-second flash of a crowd, then: how many? Five rounds.',
+    spec:'noun = what is being counted ("beer cans on the shelf", "cousins at Thanksgiving"). emoji[0] = the thing counted. lines[0] = right, lines[1] = wrong. win = closing line.' },
+  { kind:'draw', name:'Draw the Birthday Person', blurb:'Twenty seconds to draw them with a finger. In party mode every drawing lands on the TV and the host crowns a winner.',
+    spec:'label = the drawing prompt (max 40 chars, "Draw Sam and the famous haircut"). lines[0] = shown while drawing, lines[1] = shown when time is up. win = closing line.' },
+  { kind:'scramble', name:'Photo Scramble', blurb:'A photo of them cut into nine sliding tiles. Put it back together, fast.', needsPhoto:true,
+    spec:'noun = what got scrambled ("the family photo"). lines[0] = shown while solving. photo = id of a clear photo of them. win = closing line that contains {secs}.' },
+  { kind:'flappy', name:'Flappy Them', blurb:'Their face flaps through the gaps. Tap to flap, count the gaps, crash laughing.',
+    spec:'emoji[0] = the flyer if there is no photo, emoji[1] = one emoji drawn on the obstacles. items[0] = what the obstacles are (max 18 chars, "deadlines", "cactus"). lines = 2-3 crash lines. win = closing line that contains {score}.' },
 ];
 BB.MINI_KINDS = BB.MINI_CATALOG.map(m => m.kind);
 
@@ -55,15 +96,24 @@ BB.miniDefaults = function (kind, c) {
   const n = c.name, ism = c.ism || 'Classic.';
   const D = {
     match: { title:'Memory Match', noun:'cards', intro:`Turn over two at a time. The clock starts on your first flip.`, items:['Cake', 'Candles', 'Balloons', 'Presents', 'Party Hat', 'Confetti', 'The Card', 'The Speech'], emoji:['🎂', '🕯️', '🎈', '🎁', '🥳', '🎊', '💌', '🎤'], label:'★', win:`All eight pairs in {secs} seconds. ${n} would have done it faster, according to ${n}.` },
-    flick: { title:'Flick Shot', noun:'paper football', intro:'Three tries. Pull it back and let it fly.', emoji:['🏈', '🥅'], label:'THE BIG GAME', lines:['Wide right. Years of practice, apparently.', 'Wide left. The crowd is being polite about it.'], shout:"IT'S GOOD!", win:`It's good! ${n} has already started telling the story.` },
     echo: { title:'Repeat After Me', noun:'pattern', intro:'Watch the pads light up, then play it back in order.', items:['Left', 'Middle', 'Right'], emoji:['🥁', '🔔', '🎺'], lines:['Round one. That was the easy one.', 'Round two. Now it gets real.', 'Off the beat. Watch it again.'], win:`Every beat in time. ${n} has never once been this coordinated.` },
     order: { title:'Right Order', noun:'steps', intro:'Five steps. One right order. A wrong press resets the whole thing.', items:['Wake up', 'Coffee', 'More coffee', 'Pretend to check email', 'Announce a plan'], label:'POWER', lines:['Step one confirmed. Four to go.', 'Two down.', 'Three. Momentum.', 'Four. One more.', `BZZT. Wrong order. "${ism}" Start from the top.`], shout:'NAILED IT', win:'Textbook. Nobody has any notes.' },
-    crowd: { title:'Fill the Room', noun:'the room', intro:'Pack the place, one section at a time.', label:'THE STAGE', emoji:[], lines:['One section in. It is already loud.', 'Two. Somebody brought a cowbell.', 'Three.', 'Halfway. The line for snacks is out the door.', 'Five.', 'Six.', 'One more.'], shout:'HAPPY BIRTHDAY', win:`A full house, all here for ${n}.` },
-    chart: { title:'Org Chart', noun:'boxes', intro:'Every life needs an org chart.', items:[`${n} | Chief Executive of Saturday`, 'Family | direct reports', 'Hobbies | over budget', 'Friends | meets at the bar', 'Snacks | department of one', 'The Group Chat | (dotted line)', 'The Real Boss | (everybody knows)'], lines:['At the top, where they have always assumed they belong.', 'Family: frequent unscheduled meetings.', 'Hobbies: a department with no oversight.', 'Friends: attendance enthusiastic.', 'Snacks: no delegation. Ever.', 'Dotted line, as required by every real org chart.', 'One more dotted line. Everybody knows who the real boss is.'], win:'Chart complete. HR has no notes.' },
-    pin: { title:'Pin the Thing', noun:'party hat', intro:'Blindfold on. Find the top of their head.', emoji:['🥳'], lines:['Perfect fit. Frame it.', 'Close enough. It is a hat, not a helmet.', 'That is a chin-strap situation. Try again?', 'That one left the building. Try again?'], label:`${n}, now properly dressed for the occasion.` },
-    brawl: { title:'Boss Fight', noun:'fight', intro:'FIGHT!', items:['THE ALARM CLOCK', 'POW!', 'BONK!', 'THWACK!', 'OOF!', 'WHAM!'], emoji:['⏰', '🕺'], lines:['beep', 'snooze?'], shout:'K.O.! Flawless victory.', win:`${n} does not lose on home turf.` },
-    trek: { title:'The Long Road', noun:'road', intro:'One step at a time.', lines:['Step one. Shoes on, snacks packed.', 'Step two. Making good time.', `Step three. ${n} has not stopped talking once.`, 'Wait. Hold on. Something is coming...', String(ism).toUpperCase(), 'Anyway. Onward.', 'Nearly there.', 'The top.'], label:String(ism).slice(0, 22), emoji:['🚶', '🏆'], win:`Made it. ${n}, in their natural habitat.` },
     whack: { title:'Whack-a-Thing', noun:'things', intro:'Bonk ten of them. Leave the decoys alone.', items:['candles', 'cakes'], emoji:['🕯️', '🎂'], lines:['Not that one!', 'That was the cake. We needed that.', 'Wrong thing. Classic.'], shout:'CLEARED!', win:'Ten for ten. Reflexes of a much younger person.' },
+    brawl: { title:'Boss Fight', noun:'fight', intro:'FIGHT!', items:['THE ALARM CLOCK', 'POW!', 'BONK!', 'THWACK!', 'OOF!', 'WHAM!'], emoji:['⏰', '☕'], label:'robot', lines:['beep beep', 'snooze denied', 'rise and shine'], shout:'K.O.! Flawless victory.', win:`${n} does not lose on home turf.` },
+    pin: { title:'Pin the Thing', noun:'party hat', intro:'The hat circles. Tap to drop it on the top of their head. Three tries.', emoji:['🥳'], lines:['Perfect fit. Frame it.', 'Close enough. It is a hat, not a helmet.', 'That is a chin-strap situation.', 'That one left the building.'], label:`${n}, now properly dressed for the occasion.`, win:'Hat placed. Party official.' },
+    clock: { title:'Stop the Clock', noun:'timing', intro:'Stop the needle inside the green zone. Three rounds; the zone gets smaller.', label:'TIMING', items:['Warm-up', 'For real', 'Expert'], lines:['Dead center. Suspiciously good.', 'Close. The room will allow it.', 'Not even near it. Very on brand.'], win:`{score} out of 300. ${n} has been late to things with better timing than that.` },
+    balance: { title:'Balance the Tray', noun:'the tray', intro:'Tap left or right to keep the stack upright. Ten seconds a round; the stack grows.', emoji:['🍺', '🍕', '🎂', '🐈', '📦', '🪴'], lines:['CRASH. Everything on the floor. Stack it again.', 'Round one stays up. Adding more.', 'Round two. One more, and it is heavy.'], win:`Three rounds without a drop. ${n} could not do that sober.` },
+    popcorn: { title:'Popcorn', noun:'kernels', intro:'Catch each one before it lands. They come faster.', emoji:['🍿', '🍳'], lines:['Missed one. It is on the floor now.', 'Gone. The dog got it.'], win:`{score} of 20 caught. ${n} would have eaten them mid-air.` },
+    redlight: { title:'Red Light, Green Light', noun:'the finish', intro:'Hold to run. Let go the instant the lookout turns around.', items:['THE LOOKOUT'], emoji:['🏃', '👀', '🏁'], lines:['CAUGHT. Back to the start.', 'Busted. Walk of shame.', 'Seen. Every time.'], win:`Made it to the finish. ${n} has been sneaking past people for years.` },
+    slice: { title:'Cake Slice', noun:'the birthday cake', intro:'The knife sweeps. Tap to cut. Every slice should be the same size.', emoji:['🎂'], label:'FOR 5 GUESTS', lines:['Even. Nobody complains.', 'That slice is a lot bigger than the others.'], win:`{score}% even. ${n} takes the big one anyway.` },
+    balloon: { title:'Inflate the Balloon', noun:'the balloon', intro:'Hold to inflate. Let go before it pops. Nobody knows when that is.', emoji:['🎈'], lines:['POP. Too far.', 'Safe. Could have gone bigger?'], win:`Best balloon: {score}%. ${n} always pushes it a little too far.` },
+    pinata: { title:'Shake the Piñata', noun:'the piñata', intro:'Tap the piñata as it swings. Fifteen hits cracks it open.', emoji:['🪅'], items:['Candy', 'Confetti', 'A coupon', 'Another candy', 'Keys', 'The remote', 'Loose change', 'A sock'], lines:['WHACK!', 'THUMP!'], shout:'IT BROKE!', win:`Fifteen hits and everything ${n} ever lost is on the floor.` },
+    missing: { title:"Who's Missing?", noun:'the crew', intro:'Memorize the eight. The lights go out. One is gone: which?', items:['Cake', 'Candles', 'Balloons', 'Presents', 'Hat', 'Confetti', 'Card', 'Karaoke'], emoji:['🎂', '🕯️', '🎈', '🎁', '🥳', '🎊', '💌', '🎤'], lines:['Right. Sharp eyes.', 'Wrong one. Look again.'], win:`Six rounds, nothing gets past you. Unlike ${n}, who once lost a car.` },
+    shell: { title:'Shell Game', noun:'cups', intro:'Watch the cup. The cups move. Where are they now?', emoji:['🥤', '🙂'], lines:['Found them!', 'Wrong cup.'], win:`Three for three. ${n} cannot hide from you.` },
+    count: { title:'Count the Crowd', noun:'people', intro:'You get one second. How many?', emoji:['🧑'], lines:['Exactly right.', 'Off by a bit. Count again.'], win:`Five rounds counted. ${n} still cannot count drinks.` },
+    draw: { title:'Draw the Birthday Person', noun:'portrait', intro:'Twenty seconds. Draw them. Nobody is good at this.', label:`Draw ${n}`, lines:['Draw!', "Time. Pencils down."], win:`A masterpiece. ${n} will frame it, or say they will.` },
+    scramble: { title:'Photo Scramble', noun:'the photo', intro:'Slide the tiles to put the photo back together.', lines:['Slide a tile next to the gap.'], win:`Solved in {secs} seconds. ${n} has never once been this together.` },
+    flappy: { title:'Flappy Them', noun:'flight', intro:'Tap to flap. Get through as many gaps as you can.', emoji:['🐦', '🚧'], items:['obstacles'], lines:['Crashed. Flew into it face first.', 'Down. Classic landing.', 'Splat.'], win:`{score} gaps. ${n} has flown further after a birthday dinner.` },
   };
   return Object.assign({ kind, title:'', noun:'', intro:'', items:[], emoji:[], lines:[], shout:'', label:'', win:'', photo:null }, D[kind] || D.match);
 };
@@ -133,71 +183,6 @@ BB.MINI = {
       if (action === 'flip') this.flip(btn, el, local, api, T, ctx);
       if (action === 'reset') { this.deal(el, local, T, ctx); api.reset(T.intro, this.doText(T, ctx.touch)); }
     },
-  },
-
-  /* ---- 2 · flick: drag back, let go; misses right, misses left, scores on the third ---- */
-  flick: {
-    doText: (T, touch) => `${touch ? 'Drag' : 'Pull'} the ${T.noun} back, let go, and hit the target.`,
-    actions: () => `<button class="btn big" data-action="flick">Let it fly</button>${CONTINUE}`,
-    build(T, ctx) {
-      return `<div class="sidewrap"><div class="flick"><svg viewBox="0 0 1200 600">
-        <rect width="1200" height="600" rx="16" fill="${ctx.palette.accent2}"/><rect width="1200" height="600" rx="16" fill="rgba(0,0,0,.35)"/>
-        <rect x="24" y="24" width="1152" height="552" rx="10" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="6"/><line x1="40" y1="330" x2="1160" y2="330" stroke="rgba(255,255,255,.22)" stroke-width="6" stroke-dasharray="20 16"/>
-        <text x="600" y="420" text-anchor="middle" font-size="34" font-weight="900" fill="rgba(255,255,255,.4)">${esc(T.label)}</text>
-        <circle cx="600" cy="140" r="104" fill="rgba(0,0,0,.35)" stroke="${ctx.palette.accent}" stroke-width="8" stroke-dasharray="18 12"/>
-        <text class="tgt emo" x="600" y="190" text-anchor="middle" font-size="140">${esc(T.emoji[1] || '🎯')}</text>
-        <line class="meter" x1="600" y1="510" x2="600" y2="510" stroke="#fff" stroke-width="6" stroke-dasharray="14 10" opacity="0"/>
-        <g class="ball" style="transform:translate(600px,510px)"><text class="emo" text-anchor="middle" y="22" font-size="64">${esc(T.emoji[0] || '🏈')}</text></g>
-        <text class="shout" x="600" y="350" style="font-size:${Math.min(110, Math.floor(1500 / Math.max(1, T.shout.length)))}px">${esc(T.shout)}</text></svg></div>
-        <div class="side"><div class="kicker">Attempt</div><div class="stat attempt">1 of 3</div>${ctx.polaroid(T.photo, T.photoCaption, 3, 'sm')}</div></div>`;
-    },
-    init(el, local, api, T) {
-      Object.assign(local, { n:0, flying:false, drag:null, power:0 });
-      api.note(T.intro);
-      const svg = el.querySelector('.flick svg'), ball = el.querySelector('.ball'), meter = el.querySelector('.meter');
-      const toSvg = (e) => { const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; return pt.matrixTransform(svg.getScreenCTM().inverse()); };
-      const setPull = (p) => { local.power = p; ball.style.opacity = 1; ball.style.transform = `translate(600px, ${510 + p * 70}px) scale(${1 + p * .1})`; meter.setAttribute('y2', 510 + p * 70); meter.setAttribute('opacity', p > 0 ? .9 : 0); };
-      svg.addEventListener('pointerdown', (e) => { if (local.flying || local.n >= 3) return; local.drag = toSvg(e); svg.setPointerCapture(e.pointerId); });
-      svg.addEventListener('pointermove', (e) => { if (!local.drag) return; const q = toSvg(e); setPull(Math.max(0, Math.min(1, (q.y - local.drag.y) / 140))); });
-      const release = () => { if (!local.drag) return; local.drag = null; if (local.power > .12) this.launch(el, local, api, T); else setPull(0); };
-      svg.addEventListener('pointerup', release); svg.addEventListener('pointercancel', release);
-      local.onKey = (k) => {                       /* hold Space to pull back, release to flick */
-        if (local.flying || local.n >= 3) return false;
-        if (k === ' ' || k === 'Enter') { if (!local.hold) { local.hold = true; local.holdT = performance.now(); const tick = () => { if (!local.hold) return; setPull(Math.min(1, (performance.now() - local.holdT) / 900)); requestAnimationFrame(tick); }; tick(); } return true; }
-        return false;
-      };
-      local.onKeyUp = (k) => { if ((k === ' ' || k === 'Enter') && local.hold) { local.hold = false; this.launch(el, local, api, T); } };
-      local.setPull = setPull; local.alive = true; local.cleanup = () => { local.alive = false; local.hold = false; };
-    },
-    launch(el, local, api, T) {
-      if (local.flying || local.n >= 3) return;
-      local.flying = true; Sound().blip();
-      const ball = el.querySelector('.ball'); el.querySelector('.meter').setAttribute('opacity', 0);
-      const shot = [{ end:[1010, 70], ctrl:[900, 260] }, { end:[190, 70], ctrl:[300, 260] }, { end:[600, 150], ctrl:[600, 250] }][local.n];
-      const start = [600, 510 + local.power * 70], t0 = performance.now(), ms = 950;
-      const frame = (now) => {
-        if (!local.alive) return;
-        const t = Math.min(1, (now - t0) / ms), u = 1 - t;
-        const x = u*u*start[0] + 2*u*t*shot.ctrl[0] + t*t*shot.end[0], y = u*u*start[1] + 2*u*t*shot.ctrl[1] + t*t*shot.end[1];
-        ball.style.transform = `translate(${x}px, ${y}px) rotate(${t * 540}deg) scale(${1 + Math.sin(Math.PI * t) * .7 - t * .35})`;
-        if (t < 1) requestAnimationFrame(frame); else this.landed(el, local, api, T);
-      };
-      requestAnimationFrame(frame);
-    },
-    landed(el, local, api, T) {
-      local.n++; local.flying = false; local.power = 0;
-      el.querySelector('.attempt').textContent = `${Math.min(local.n + 1, 3)} of 3`;
-      if (local.n >= 3) {
-        el.querySelector('.ball').style.opacity = 0; el.querySelector('.tgt').classList.add('scored');
-        el.querySelector('.shout').classList.add('show'); const pol = el.querySelector('.side .polaroid'); if (pol) pol.classList.add('show');
-        Sound().cheer(); Confetti().burst(150); api.finish(T.win);
-        el.querySelectorAll('[data-action="flick"]').forEach(b => b.hidden = true);
-      } else {
-        Sound().wrong(); api.note(T.lines[local.n - 1] || 'Miss.');
-        setTimeout(() => { if (local.alive) local.setPull(0); }, 700);
-      }
-    },
-    act(action, btn, el, local, api, T) { if (action === 'flick' && !local.flying && local.n < 3) { local.setPull(.7); setTimeout(() => this.launch(el, local, api, T), 150); } },
   },
 
   /* ---- 3 · echo: watch the pads, play them back; three rounds ---- */
@@ -303,236 +288,6 @@ BB.MINI = {
     },
   },
 
-  /* ---- 5 · crowd: fill eight sections of an arena ---- */
-  crowd: {
-    doText: (T, touch) => `${touch ? 'Tap' : 'Click'} each section to fill ${T.noun}.`,
-    actions: () => CONTINUE,
-    build(T, ctx) {
-      const cx = 600, cy = 360, rxO = 560, ryO = 300, rxI = 300, ryI = 140, r = (() => { let s = 5; return () => (s = (s * 16807) % 2147483647) / 2147483647; })();
-      const em = T.emoji[0];
-      let secs = '', fans = '';
-      for (let s = 0; s < 8; s++) {
-        const a0 = s / 8 * Math.PI * 2, a1 = (s + 1) / 8 * Math.PI * 2, pts = [];
-        for (let k = 0; k <= 6; k++) { const a = a0 + (a1 - a0) * k / 6; pts.push(`${(cx + Math.cos(a) * rxO).toFixed(0)},${(cy + Math.sin(a) * ryO).toFixed(0)}`); }
-        for (let k = 6; k >= 0; k--) { const a = a0 + (a1 - a0) * k / 6; pts.push(`${(cx + Math.cos(a) * rxI).toFixed(0)},${(cy + Math.sin(a) * ryI).toFixed(0)}`); }
-        secs += `<polygon class="section" data-action="fill" data-s="${s}" points="${pts.join(' ')}"/>`;
-        let f = '';
-        for (let i = 0; i < (em ? 12 : 46); i++) {
-          const a = a0 + (a1 - a0) * (.08 + r() * .84), t = .14 + r() * .72, x = (cx + Math.cos(a) * (rxI + t * (rxO - rxI))).toFixed(0), y = (cy + Math.sin(a) * (ryI + t * (ryO - ryI))).toFixed(0), d = (r() * .2).toFixed(2);
-          f += em ? `<text class="fan emo" x="${x}" y="${+y + 12}" text-anchor="middle" font-size="36" style="animation-delay:${d}s">${esc(em)}</text>` : `<circle class="fan" cx="${x}" cy="${y}" r="5" fill="${r() < .6 ? ctx.palette.accent : '#e8eefc'}" style="animation-delay:${d}s"/>`;
-        }
-        fans += `<g class="fans" data-s="${s}">${f}</g>`;
-      }
-      return `<svg class="crowd" viewBox="0 0 1200 720"><ellipse cx="${cx}" cy="${cy + 10}" rx="${rxO + 16}" ry="${ryO + 16}" fill="rgba(0,0,0,.55)"/>${secs}
-        <ellipse class="stagefloor" cx="${cx}" cy="${cy}" rx="${rxI}" ry="${ryI}" pointer-events="none"/>
-        <text x="600" y="372" text-anchor="middle" font-size="34" font-weight="900" fill="rgba(255,255,255,.5)" pointer-events="none">${esc(T.label)}</text>
-        ${fans}<text class="shout" x="600" y="400" style="font-size:${Math.min(110, Math.floor(1500 / Math.max(1, T.shout.length)))}px">${esc(T.shout)}</text></svg>`;
-    },
-    init(el, local, api, T) {
-      local.n = 0; api.note(T.intro || 'Sections filled: 0 of 8');
-      local.onKey = (k) => {                       /* Enter/Space fills the next empty section */
-        if (k !== 'Enter' && k !== ' ') return false;
-        const next = el.querySelector('.section:not(.full)'); if (!next) return false;
-        this.act('fill', next, el, local, api, T); return true;
-      };
-    },
-    act(action, poly, el, local, api, T) {
-      if (action !== 'fill' || poly.classList.contains('full')) return;
-      const svg = el.querySelector('.crowd');
-      poly.classList.add('full');
-      svg.querySelectorAll(`.fans[data-s="${poly.dataset.s}"] .fan`).forEach(f => f.classList.add('show'));
-      Sound().blip(); local.n++;
-      if (local.n >= 8) { svg.classList.add('roar'); svg.querySelector('.shout').classList.add('show'); Sound().cheer(); Confetti().burst(160); api.finish(T.win); }
-      else api.note(`${local.n} of 8. ${T.lines[local.n - 1] || ''}`);
-    },
-  },
-
-  /* ---- 6 · chart: build the org chart of their life with one big button ---- */
-  chart: {
-    doText: () => 'Press the big button to build the org chart.',
-    pos: [[50, 14], [14, 72], [38, 72], [62, 72], [86, 72], [84, 16], [84, 42]],
-    split: (s) => { const [t, ...rest] = String(s).split('|'); return [t.trim(), rest.join('|').trim()]; },
-    first: (T) => `Place ${BB.MINI.chart.split(T.items[0])[0]} at the top`,
-    build(T) {
-      const P = this.pos;
-      const boxes = T.items.slice(0, 7).map((it, i) => { const [t, s] = this.split(it); return `<div class="obox ${i === 0 ? 'top' : i >= 5 ? 'dotted' : ''}" data-i="${i}" style="left:${P[i][0]}%;top:${P[i][1]}%"><div class="t">${esc(t)}</div><div class="s">${esc(s)}</div></div>`; }).join('');
-      const lines = [1, 2, 3, 4, 5, 6].map(i => { const l = i === 5 ? [50, 14, 84, 16] : i === 6 ? [84, 22, 84, 36] : [50, 22, P[i][0], 62]; return `<line data-i="${i}" class="${i >= 5 ? 'dotted' : ''}" x1="${l[0]}%" y1="${l[1]}%" x2="${l[2]}%" y2="${l[3]}%"/>`; }).join('');
-      return `<div class="org"><svg>${lines}</svg>${boxes}</div>`;
-    },
-    init(el, local, api, T) { local.n = 0; api.note(T.intro); },
-    step(el, local, T) {
-      const i = local.n;
-      el.querySelector(`.obox[data-i="${i}"]`).classList.add('show');
-      const line = el.querySelector(`line[data-i="${i}"]`); if (line) line.classList.add('show');
-      Sound().blip(); local.n++;
-      if (local.n >= 7) { Sound().chime(); Confetti().burst(100); return { note:`${T.lines[i] || ''} ${T.win}`.trim(), done:true }; }
-      const next = this.split(T.items[local.n])[0];
-      return { note:T.lines[i] || '', label: local.n >= 5 ? `Add the dotted line: ${next}` : `Add: ${next}` };
-    },
-  },
-
-  /* ---- 7 · pin: pin the thing on a photo of the birthday person ---- */
-  pin: {
-    doText: (T, touch) => `Pin the ${T.noun} on ${T._name || 'them'}. Aim, then ${touch ? 'tap' : 'click'}.`,
-    actions: () => `<button class="btn ghostbtn" data-action="retry" hidden>Try again</button>${CONTINUE}`,
-    build(T, ctx) {
-      return `<div class="sidewrap"><div class="pin"><img src="${esc(ctx.src(T.photo))}" alt=""><div class="target"></div><div class="blind">Blindfold on.<br>Where is the top of their head?</div><div class="thing emo">${esc(T.emoji[0] || '🥳')}</div></div>
-        <div class="side"><div class="kicker">Placement</div><div class="stat huge score">—</div><div class="card"><p>${esc(T.label)}</p></div></div></div>`;
-    },
-    init(el, local, api, T, ctx) {
-      const box = el.querySelector('.pin'), thing = box.querySelector('.thing'), tgt = box.querySelector('.target');
-      const target = local.target = { x: T.target ? T.target.x : .5, y: T.target ? T.target.y : .2 };
-      tgt.style.left = (target.x * 100) + '%'; tgt.style.top = (target.y * 100) + '%';
-      const place = (x, y) => { local.hx = Math.max(0, Math.min(1, x)); local.hy = Math.max(0, Math.min(1, y)); thing.style.left = (local.hx * 100) + '%'; thing.style.top = (local.hy * 100) + '%'; };
-      const reset = () => { box.classList.remove('pinned'); local.pinned = false; place(.15 + Math.random() * .7, .45 + Math.random() * .45); el.querySelector('.score').textContent = '—'; api.reset(T.intro, this.doText(T, ctx.touch)); el.querySelectorAll('[data-action="retry"]').forEach(b => b.hidden = true); };
-      local.reset = reset; reset();
-      const rel = (e) => { const r = box.getBoundingClientRect(); return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height]; };
-      box.addEventListener('pointermove', e => { if (!local.pinned && e.pointerType === 'mouse') place(...rel(e)); });
-      box.addEventListener('pointerdown', e => { if (!local.pinned) { place(...rel(e)); this.pinIt(el, local, api, T); } });
-      local.onKey = (k) => {
-        if (local.pinned) return false;
-        const d = { ArrowLeft:[-.03, 0], ArrowRight:[.03, 0], ArrowUp:[0, -.03], ArrowDown:[0, .03] }[k];
-        if (d) { place(local.hx + d[0], local.hy + d[1]); return true; }
-        if (k === 'Enter' || k === ' ') { this.pinIt(el, local, api, T); return true; }
-        return false;
-      };
-    },
-    pinIt(el, local, api, T) {
-      const box = el.querySelector('.pin'), r = box.getBoundingClientRect();
-      local.pinned = true; box.classList.add('pinned');
-      const dx = (local.hx - local.target.x) * (r.width / r.height), dy = local.hy - local.target.y;   /* scale x so a miss counts the same in both directions */
-      const dist = Math.hypot(dx, dy);
-      let msg, score;
-      if (dist < .06) { msg = T.lines[0]; score = 'Bullseye'; Sound().cheer(); Confetti().burst(140); }
-      else if (dist < .14) { msg = T.lines[1]; score = 'Close'; Sound().chime(); }
-      else if (dy > 0 && dist < .34) { msg = T.lines[2]; score = 'Low'; Sound().wrong(); }
-      else { msg = T.lines[3]; score = 'Way off'; Sound().wrong(); }
-      el.querySelector('.score').textContent = score;
-      api.finish(msg, 'Press Continue, or try again.');
-      el.querySelectorAll('[data-action="retry"]').forEach(b => b.hidden = false);
-    },
-    act(action, btn, el, local) { if (action === 'retry') local.reset(); },
-  },
-
-  /* ---- 8 · brawl: arrows move, space punches, the nemesis never wins ---- */
-  brawl: {
-    soft: true,
-    doText: (T, touch) => touch ? `Use the buttons to move and punch. Beat ${T.items[0]}.` : `Arrow keys move. Space punches. Beat ${T.items[0]}.`,
-    actions: () => `<div class="pad"><button class="btn ghostbtn" data-action="left">◀ Move</button><button class="btn big" data-action="punch">PUNCH</button><button class="btn ghostbtn" data-action="right">Move ▶</button></div>${CONTINUE}`,
-    build(T, ctx) {
-      const face = ctx.heroPhoto ? `<img class="face" src="${esc(ctx.src(ctx.heroPhoto))}" alt="">` : '';
-      return `<div class="arena">
-        <div class="hpbar you"><div class="fill" style="width:100%"></div></div><div class="hpname you">${esc(T._name || 'YOU')}</div>
-        <div class="hpbar foe"><div class="fill" style="width:100%"></div></div><div class="hpname foe">${esc(T.items[0])}</div>
-        <div class="fighter you">${face}<div class="body emo">${esc(T.emoji[1] || '🕺')}</div><div class="glove emo">🥊</div></div>
-        <div class="fighter foe"><div class="body emo">${esc(T.emoji[0] || '⏰')}</div></div>
-        <div class="bubble"></div><div class="fightmsg">${esc(T.intro || 'FIGHT!')}</div>
-      </div>`;
-    },
-    init(el, local, api, T, ctx) {
-      const arena = el.querySelector('.arena'), you = el.querySelector('.fighter.you'), foe = el.querySelector('.fighter.foe');
-      const W = () => arena.clientWidth, fw = () => you.clientWidth;
-      const g = local.g = { px:0, ex:0, pHP:100, eHP:100, cool:1.2, over:false, punching:false, down:{} };
-      const hits = T.items.slice(1).filter(Boolean), pokes = T.lines.filter(Boolean);
-      const place = () => { you.style.transform = `translateX(${g.px}px)`; foe.style.setProperty('--x', g.ex + 'px'); if (!g.over) foe.style.transform = `translateX(${g.ex}px)`; };
-      g.px = W() * .18; g.ex = W() * .68; place();
-      api.note(ctx.touch ? 'Get close, then PUNCH.' : '← → move · SPACE punch');
-      const msg = el.querySelector('.fightmsg'); msg.classList.add('show'); setTimeout(() => msg.classList.remove('show'), 1200);
-      const bubble = (txt, x) => { const b = el.querySelector('.bubble'); b.textContent = txt; b.style.left = x + 'px'; b.classList.remove('show'); void b.offsetWidth; b.classList.add('show'); };
-      g.place = place;
-      g.punch = () => {
-        if (g.over || g.punching) return;
-        g.punching = true; you.classList.add('punch'); Sound().blip();
-        setTimeout(() => { you.classList.remove('punch'); g.punching = false; }, 220);
-        if (Math.abs(g.ex - g.px) <= fw() * 1.15) {
-          g.eHP = Math.max(0, g.eHP - 20); el.querySelector('.hpbar.foe .fill').style.width = g.eHP + '%';
-          foe.classList.remove('hit'); void foe.offsetWidth; foe.classList.add('hit');
-          g.ex = Math.min(W() - fw(), g.ex + 50); place();
-          bubble(pick(hits.length ? hits : ['POW!']), g.ex + fw() * .1); Sound().thud();
-          if (g.eHP <= 0) { g.over = true; foe.classList.add('ko'); Sound().cheer(); Confetti().burst(160); msg.textContent = T.shout; msg.classList.add('show'); api.finish(T.win); }
-        }
-      };
-      let last = performance.now();
-      const loop = (now) => {
-        if (!local.alive) return;
-        const dt = Math.min(.05, (now - last) / 1000); last = now;
-        if (!g.over) {
-          const sp = W() * .45;
-          if (g.down.ArrowLeft) g.px -= sp * dt; if (g.down.ArrowRight) g.px += sp * dt;
-          g.px = Math.max(0, Math.min(W() - fw(), g.px));
-          const d = g.ex - g.px;
-          if (Math.abs(d) > fw() * 1.05) g.ex -= Math.sign(d) * W() * .09 * dt;   /* the nemesis waddles over slowly */
-          g.cool -= dt;
-          if (Math.abs(d) <= fw() * 1.2 && g.cool <= 0) {
-            g.cool = 1.7; foe.classList.remove('poke'); void foe.offsetWidth; foe.classList.add('poke');
-            g.pHP = Math.max(1, g.pHP - 4); el.querySelector('.hpbar.you .fill').style.width = g.pHP + '%';   /* the hero can never actually lose */
-            bubble(pick(pokes.length ? pokes : ['poke']), g.px + fw() * .2);
-          }
-          place();
-        }
-        requestAnimationFrame(loop);
-      };
-      local.alive = true; requestAnimationFrame(loop);
-      local.cleanup = () => { local.alive = false; };
-      local.onKey = (k) => {
-        if (g.over) return false;
-        if (k === 'ArrowLeft' || k === 'ArrowRight') { g.down[k] = true; return true; }
-        if (k === ' ' || k === 'Enter') { g.punch(); return true; }
-        return false;
-      };
-      local.onKeyUp = (k) => { delete g.down[k]; };
-    },
-    act(action, btn, el, local) {
-      const g = local.g; if (!g || g.over) return;
-      const W = el.querySelector('.arena').clientWidth, fw = el.querySelector('.fighter.you').clientWidth;
-      if (action === 'left') g.px = Math.max(0, g.px - W * .12);
-      if (action === 'right') g.px = Math.min(W - fw, g.px + W * .12);
-      if (action === 'punch') g.punch();
-      g.place();
-    },
-  },
-
-  /* ---- 9 · trek: press to advance; an -ism interrupts midway; reveal at the top ---- */
-  trek: {
-    soft: true,
-    pts: [[140, 640], [440, 600], [260, 520], [560, 470], [400, 400], [700, 340], [540, 280], [700, 150]],
-    doText: () => 'Press the big button to keep going.',
-    first: () => 'Go',
-    build(T, ctx) {
-      const P = this.pts;
-      let segs = '';
-      for (let i = 1; i < P.length; i++) segs += `<line class="trailseg" data-i="${i}" x1="${P[i - 1][0]}" y1="${P[i - 1][1]}" x2="${P[i][0]}" y2="${P[i][1]}"/>`;
-      const src = T.photo ? ctx.src(T.photo) : '';
-      return `<div class="trek"><svg viewBox="0 0 1200 700">
-        <polygon class="hill" points="0,700 700,120 1200,700"/><polygon class="hill2" opacity=".55" points="0,700 700,120 740,170 640,430 500,560 360,640 260,700"/>
-        ${segs}
-        <g class="dust" transform="translate(400 400)"><circle cx="-30" cy="0" r="18" fill="#fff" opacity=".7"/><circle cx="10" cy="-14" r="24" fill="#fff" opacity=".7"/><circle cx="40" cy="4" r="16" fill="#fff" opacity=".7"/></g>
-        <line x1="700" y1="120" x2="700" y2="62" stroke="#fff8e6" stroke-width="5"/><polygon class="flagc" points="700,62 748,78 700,94"/>
-        <g id="walker" style="transform:translate(${P[0][0]}px, ${P[0][1]}px)"><ellipse cx="0" cy="4" rx="30" ry="8" fill="rgba(0,0,0,.35)"/><text class="emo" text-anchor="middle" y="0" font-size="120">${esc(T.emoji[0] || '🚶')}</text></g></svg>
-        <div class="reveal">${src ? `<div class="frame"><img src="${esc(src)}" alt=""></div>` : `<div class="bigemo emo">${esc(T.emoji[1] || '🏆')}</div>`}<div class="cap">${esc(T.win)}</div></div></div>`;
-    },
-    init(el, local, api, T) { local.n = 0; local.stage = 'go'; api.note(T.intro); },
-    step(el, local, T) {
-      const P = this.pts;
-      if (local.stage === 'ism') {              /* the -ism button was pressed */
-        local.stage = 'go'; el.querySelector('.dust').classList.remove('show'); Sound().chime();
-        return { note:T.lines[4], label:'Keep going', bigNote:true };
-      }
-      local.n++;
-      const p = P[local.n];
-      el.querySelector('#walker').style.transform = `translate(${p[0]}px, ${p[1]}px)`;
-      el.querySelector(`.trailseg[data-i="${local.n}"]`).classList.add('done');
-      Sound().blip();
-      if (local.n === 4) { local.stage = 'ism'; el.querySelector('.dust').classList.add('show'); return { note:T.lines[3], label:T.label || '...', bigNote:true }; }
-      if (local.n >= P.length - 1) {            /* the top: reveal */
-        const c = el.querySelector('.trek'); c.classList.add('revealed'); c.querySelector('.reveal').classList.add('show');
-        Sound().fanfare(); Confetti().burst(140);
-        return { note:T.lines[7], done:true };
-      }
-      return { note:T.lines[local.n <= 3 ? local.n - 1 : local.n], label:'Keep going' };
-    },
-  },
-
   /* ---- 10 · whack: bonk ten of the right thing; decoys only cost you dignity ---- */
   whack: {
     goal: 10,
@@ -576,6 +331,582 @@ BB.MINI = {
       }
     },
     act(action, btn, el, local, api, T) { if (action === 'bonk') this.bonk(btn, el, local, api, T); },
+  },
+
+  /* ---- brawl: block, dodge, and punch the boss when its guard drops; three rounds ---- */
+  brawl: {
+    soft: true,
+    doText: (T, touch) => touch ? `Move, block and punch. Hit ${T.items[0]} when its guard is down.` : `Arrows move, Down blocks, Space punches. Hit ${T.items[0]} when its guard drops.`,
+    actions: () => `<div class="pad"><button class="btn ghostbtn" data-action="left">◀</button><button class="btn ghostbtn" data-action="block">BLOCK</button><button class="btn big" data-action="punch">PUNCH</button><button class="btn ghostbtn" data-action="right">▶</button></div>${CONTINUE}`,
+    bodies: {
+      blob:  (c) => `<path d="M20 150 q-14 -60 20 -96 q20 -30 60 -18 q40 22 24 78 q-8 40 -104 36z" fill="${c}"/><ellipse cx="60" cy="152" rx="48" ry="8" fill="rgba(0,0,0,.3)"/>`,
+      robot: (c) => `<rect x="30" y="20" width="60" height="50" rx="8" fill="${c}"/><rect x="24" y="74" width="72" height="56" rx="10" fill="${c}"/><rect x="6" y="80" width="16" height="44" rx="6" fill="${c}"/><rect x="98" y="80" width="16" height="44" rx="6" fill="${c}"/><rect x="34" y="132" width="20" height="24" fill="${c}"/><rect x="66" y="132" width="20" height="24" fill="${c}"/><line x1="60" y1="20" x2="60" y2="6" stroke="${c}" stroke-width="4"/><circle cx="60" cy="4" r="5" fill="#ff5252"/>`,
+      box:   (c) => `<rect x="14" y="30" width="92" height="92" rx="6" fill="${c}"/><path d="M14 30 l14 -14 h92 v92 l-14 14" fill="none" stroke="rgba(0,0,0,.35)" stroke-width="4"/><rect x="30" y="122" width="18" height="30" fill="${c}"/><rect x="72" y="122" width="18" height="30" fill="${c}"/>`,
+      cloud: (c) => `<circle cx="40" cy="80" r="30" fill="${c}"/><circle cx="72" cy="66" r="36" fill="${c}"/><circle cx="90" cy="96" r="28" fill="${c}"/><ellipse cx="62" cy="108" rx="52" ry="22" fill="${c}"/><path d="M40 134 l-6 22 M62 138 l0 22 M84 134 l6 22" stroke="#9ec9ff" stroke-width="5" stroke-linecap="round"/>`,
+      beast: (c) => `<ellipse cx="60" cy="96" rx="50" ry="52" fill="${c}"/><polygon points="22,58 12,18 44,44" fill="${c}"/><polygon points="98,58 108,18 76,44" fill="${c}"/><rect x="28" y="140" width="22" height="18" rx="6" fill="${c}"/><rect x="70" y="140" width="22" height="18" rx="6" fill="${c}"/><path d="M40 118 q20 14 40 0" stroke="#111" stroke-width="4" fill="none"/><polygon points="46,118 50,130 54,118" fill="#fff"/><polygon points="66,118 70,130 74,118" fill="#fff"/>`,
+    },
+    build(T, ctx) {
+      const p = ctx.palette, body = this.bodies[T.label] || this.bodies.blob;
+      const boss = `<svg viewBox="0 0 120 160" class="bossbody">${body(p.accent2)}<text class="emo" x="60" y="86" text-anchor="middle" font-size="42">${esc(T.emoji[0] || '')}</text><text class="emo acc" x="106" y="120" text-anchor="middle" font-size="34">${esc(T.emoji[1] || '')}</text><rect class="shield" x="-4" y="30" width="20" height="100" rx="8" fill="#9ec9ff" opacity="0"/></svg>`;
+      const hero = `<svg viewBox="0 0 120 160" class="herobody"><rect x="40" y="120" width="16" height="36" rx="6" fill="#2b2b2b"/><rect x="64" y="120" width="16" height="36" rx="6" fill="#2b2b2b"/><rect x="32" y="60" width="56" height="66" rx="16" fill="${p.accent}"/><g class="arm arm-l"><rect x="12" y="66" width="20" height="50" rx="10" fill="${p.accent}"/><circle cx="22" cy="118" r="12" fill="#c0392b"/></g><g class="arm arm-r"><rect x="88" y="66" width="20" height="50" rx="10" fill="${p.accent}"/><circle cx="98" cy="118" r="12" fill="#c0392b"/></g></svg>${ctx.heroPhoto ? `<img class="face" src="${esc(ctx.src(ctx.heroPhoto))}" alt="">` : `<span class="face emo">🙂</span>`}`;
+      return `<div class="arena">
+        <div class="hpbar you"><div class="fill" style="width:100%"></div></div><div class="hpname you">${esc(T._name || 'YOU')}</div>
+        <div class="hpbar foe"><div class="fill" style="width:100%"></div></div><div class="hpname foe">${esc(T.items[0])}</div>
+        <div class="roundtag">Round 1 of 3</div>
+        <div class="fighter you">${hero}</div><div class="fighter foe">${boss}</div>
+        <div class="bubble"></div><div class="fightmsg">${esc(T.intro || 'FIGHT!')}</div></div>`;
+    },
+    init(el, local, api, T, ctx) {
+      const arena = el.querySelector('.arena'), you = el.querySelector('.fighter.you'), foe = el.querySelector('.fighter.foe'), msg = el.querySelector('.fightmsg');
+      const W = () => arena.clientWidth, fw = () => you.clientWidth || 100, range = () => fw() * 1.15;
+      const hits = T.items.slice(1).filter(Boolean), taunts = T.lines.filter(Boolean);
+      const g = local.g = { px:0, ex:0, pHP:100, eHP:100, round:1, state:'idle', t:1.2, over:false, punching:false, blocking:0, down:0, keys:{}, cool:0 };
+      g.px = W() * .16; g.ex = W() * .70;
+      const place = () => { you.style.transform = `translateX(${g.px}px)`; foe.style.setProperty('--x', g.ex + 'px'); if (!g.over) foe.style.transform = `translateX(${g.ex}px)`; };
+      const bubble = (txt, x) => { const b = el.querySelector('.bubble'); b.textContent = txt; b.style.left = x + 'px'; b.classList.remove('show'); void b.offsetWidth; b.classList.add('show'); };
+      const flash = (txt) => { msg.textContent = txt; msg.classList.remove('show'); void msg.offsetWidth; msg.classList.add('show'); setTimeout(() => msg.classList.remove('show'), 1100); };
+      const hp = () => { el.querySelector('.hpbar.you .fill').style.width = g.pHP + '%'; el.querySelector('.hpbar.foe .fill').style.width = g.eHP + '%'; };
+      const setState = (s, t) => { g.state = s; g.t = t; foe.classList.toggle('guard', s === 'guard'); foe.classList.toggle('wind', s === 'wind'); foe.classList.toggle('open', s === 'open'); };
+      place(); flash(T.intro || 'FIGHT!'); api.note(ctx.touch ? 'Blue shield = blocked. Wobble = about to swing: block or step back. Stagger = free hits.' : 'Shield up = blocked. Wobble = incoming: block (Down) or step back. Stagger = free hits.');
+      g.block = () => { if (!g.over && !g.down) { g.blocking = .7; you.classList.add('blocking'); } };
+      g.punch = () => {
+        if (g.over || g.down || g.punching) return;
+        g.punching = true; you.classList.add('punch'); Sound().blip(); setTimeout(() => { you.classList.remove('punch'); g.punching = false; }, 220);
+        if (Math.abs(g.ex - g.px) > range()) return;
+        if (g.state === 'guard') { Sound().thud(); bubble('BLOCKED', g.ex); g.px = Math.max(0, g.px - fw() * .5); place(); return; }
+        const dmg = g.state === 'open' ? 25 : g.state === 'wind' ? 20 : 10;
+        g.eHP = Math.max(0, g.eHP - dmg); hp(); Sound().thud();
+        foe.classList.remove('hit'); void foe.offsetWidth; foe.classList.add('hit');
+        g.ex = Math.min(W() - fw(), g.ex + 40); bubble(pick(hits.length ? hits : ['POW!']), g.ex + fw() * .1);
+        if (g.state === 'wind') setState('open', .9);
+        if (g.eHP <= 0) {
+          if (g.round >= 3) { g.over = true; foe.classList.add('ko'); Sound().cheer(); Confetti().burst(160); msg.textContent = T.shout; msg.classList.add('show'); api.finish(T.win); return; }
+          g.round++; el.querySelector('.roundtag').textContent = `Round ${g.round} of 3`; flash(`ROUND ${g.round}`); Sound().fanfare();
+          g.eHP = 100; g.pHP = Math.min(100, g.pHP + 25); hp(); g.ex = W() * .70; setState('idle', 1.4); place();
+        }
+      };
+      loop(local, (dt) => {
+        if (g.over) return;
+        const speed = 1 + (g.round - 1) * .35;
+        if (g.blocking > 0) { g.blocking -= dt; if (g.blocking <= 0) you.classList.remove('blocking'); }
+        if (g.down > 0) { g.down -= dt; if (g.down <= 0) { you.classList.remove('down'); g.pHP = 60; hp(); flash('BACK UP'); } place(); return; }
+        const sp = W() * .45;
+        if (g.keys.ArrowLeft) g.px -= sp * dt; if (g.keys.ArrowRight) g.px += sp * dt;
+        g.px = clamp(g.px, 0, W() - fw());
+        const d = g.ex - g.px, near = Math.abs(d) <= range();
+        g.t -= dt * speed;
+        if (g.state === 'idle') {
+          if (!near) g.ex -= Math.sign(d) * W() * .14 * speed * dt;     /* closes in */
+          if (g.t <= 0) setState(Math.random() < .45 ? 'guard' : 'wind', Math.random() < .45 ? 1.0 : .55);
+        } else if (g.state === 'guard') { if (g.t <= 0) setState('idle', rnd(.6, 1.3)); }
+        else if (g.state === 'wind') {
+          if (g.t <= 0) {                                              /* the swing lands unless you block or step out of range */
+            if (near && g.blocking <= 0) { g.pHP = Math.max(0, g.pHP - 18); hp(); you.classList.remove('hit'); void you.offsetWidth; you.classList.add('hit'); bubble(pick(taunts.length ? taunts : ['ha']), g.px + fw() * .2); Sound().wrong(); }
+            else if (near) { Sound().blip(); bubble('BLOCKED', g.px + fw() * .2); }
+            else bubble('WHIFF', g.ex);
+            if (g.pHP <= 0) { g.down = 2.4; you.classList.add('down'); flash('DOWN! 1... 2... 3...'); Sound().buzzer(); }
+            setState(g.pHP <= 0 ? 'idle' : 'open', .8);
+          }
+        } else if (g.state === 'open') { if (g.t <= 0) setState('idle', rnd(.8, 1.6)); }
+        place();
+      });
+      local.onKey = (k) => {
+        if (g.over) return false;
+        if (k === 'ArrowLeft' || k === 'ArrowRight') { g.keys[k] = true; return true; }
+        if (k === 'ArrowDown') { g.block(); return true; }
+        if (k === ' ' || k === 'Enter') { g.punch(); return true; }
+        return false;
+      };
+      local.onKeyUp = (k) => { delete g.keys[k]; };
+    },
+    act(action, btn, el, local) {
+      const g = local.g; if (!g || g.over || g.down) return;
+      const W = el.querySelector('.arena').clientWidth, fw = el.querySelector('.fighter.you').clientWidth;
+      if (action === 'left') g.px = Math.max(0, g.px - W * .12);
+      if (action === 'right') g.px = Math.min(W - fw, g.px + W * .12);
+      if (action === 'block') g.block();
+      if (action === 'punch') g.punch();
+    },
+  },
+
+  /* ---- pin: the thing circles the photo; drop it on the top of their head; three tries ---- */
+  pin: {
+    doText: (T, touch) => `${touch ? 'Tap' : 'Click or press Space'} to drop the ${T.noun} on ${T._name || 'them'}. Three tries.`,
+    actions: () => CONTINUE,
+    build(T, ctx) {
+      return `<div class="sidewrap"><div class="pin"><img src="${esc(ctx.src(T.photo))}" alt=""><div class="target"></div><div class="thing emo">${esc(T.emoji[0] || '🥳')}</div><div class="ghost emo"></div></div>
+        <div class="side"><div class="kicker">Try</div><div class="stat attempt">1 of 3</div><div class="stat huge score">—</div><div class="card"><p>${esc(T.label)}</p></div></div></div>`;
+    },
+    init(el, local, api, T, ctx) {
+      const box = el.querySelector('.pin'), thing = box.querySelector('.thing'), tgt = box.querySelector('.target');
+      const target = T.target || { x:.5, y:.2 };
+      tgt.style.left = (target.x * 100) + '%'; tgt.style.top = (target.y * 100) + '%';
+      Object.assign(local, { n:0, best:0, t:rnd(0, 6), speed:1, dropped:false });
+      api.note(T.intro);
+      loop(local, (dt) => {
+        if (local.dropped) return;
+        local.t += dt * local.speed;
+        local.hx = .5 + .42 * Math.sin(local.t * 1.3); local.hy = .5 + .42 * Math.sin(local.t * .9 + 1.7);
+        thing.style.left = (local.hx * 100) + '%'; thing.style.top = (local.hy * 100) + '%';
+      });
+      const drop = () => {
+        if (local.dropped || local.n >= 3) return;
+        local.dropped = true; local.n++; box.classList.add('pinned');
+        const r = box.getBoundingClientRect(), dx = (local.hx - target.x) * (r.width / r.height), dy = local.hy - target.y, dist = Math.hypot(dx, dy);
+        const pts = Math.round(clamp(100 - dist * 320, 0, 100)); local.best = Math.max(local.best, pts);
+        const line = dist < .06 ? T.lines[0] : dist < .14 ? T.lines[1] : (dy > 0 && dist < .34) ? T.lines[2] : T.lines[3];
+        el.querySelector('.score').textContent = pts + ' pts';
+        if (dist < .06) { Sound().cheer(); Confetti().burst(120); } else if (dist < .14) Sound().chime(); else Sound().wrong();
+        const ghost = box.querySelector('.ghost'); ghost.textContent = T.emoji[0] || '🥳'; ghost.style.left = thing.style.left; ghost.style.top = thing.style.top; ghost.classList.add('show');
+        if (local.n >= 3) { api.finish(`${line} Best: ${local.best} pts.`, undefined, { score: local.best, unit:'pts' }); return; }
+        api.note(line + ` (${local.n} of 3)`); el.querySelector('.attempt').textContent = `${local.n + 1} of 3`;
+        setTimeout(() => { if (!local.alive) return; box.classList.remove('pinned'); local.speed += .5; local.dropped = false; }, 1200);
+      };
+      box.addEventListener('pointerdown', (e) => { e.preventDefault(); drop(); });
+      local.onKey = (k) => { if (k === ' ' || k === 'Enter') { drop(); return true; } return false; };
+    },
+  },
+
+  /* ---- clock: stop the needle in the zone; three rounds, the zone shrinks ---- */
+  clock: {
+    doText: (T, touch) => `${touch ? 'Tap' : 'Click or press Space'} to stop the needle in the green zone.`,
+    actions: () => CONTINUE,
+    build(T, ctx) {
+      let ticks = '';
+      for (let k = 0; k < 24; k++) ticks += `<line x1="200" y1="30" x2="200" y2="${k % 6 === 0 ? 52 : 42}" stroke="#fff" stroke-width="4" opacity=".7" transform="rotate(${k * 15} 200 200)"/>`;
+      return `<div class="sidewrap"><div class="dialwrap"><svg viewBox="0 0 400 400" class="dial"><circle cx="200" cy="200" r="184" fill="rgba(0,0,0,.55)" stroke="#fff" stroke-width="6"/>
+        <path class="zone" d="" fill="#3ddc84" opacity=".85"/>${ticks}<line class="needle" x1="200" y1="200" x2="200" y2="40" stroke="${ctx.palette.accent}" stroke-width="10" stroke-linecap="round"/><circle cx="200" cy="200" r="18" fill="#fff"/>
+        <text x="200" y="300" text-anchor="middle" font-size="26" font-weight="900" fill="#fff" opacity=".8">${esc(T.label)}</text></svg></div>
+        <div class="side"><div class="kicker">Round</div><div class="stat round">1 of 3 · ${esc(T.items[0])}</div><div class="stat huge score">0</div><div class="pairs">points</div></div></div>`;
+    },
+    init(el, local, api, T) {
+      Object.assign(local, { round:0, angle:0, score:0, stopped:false });
+      const zone = el.querySelector('.zone'), needle = el.querySelector('.needle');
+      const arc = (c, w) => { const a0 = (c - w / 2 - 90) * Math.PI / 180, a1 = (c + w / 2 - 90) * Math.PI / 180, r = 176; return `M200 200 L${200 + Math.cos(a0) * r} ${200 + Math.sin(a0) * r} A${r} ${r} 0 ${w > 180 ? 1 : 0} 1 ${200 + Math.cos(a1) * r} ${200 + Math.sin(a1) * r} Z`; };
+      const start = () => { local.w = [70, 42, 24][local.round]; local.speed = [220, 320, 430][local.round]; local.c = rnd(30, 330); zone.setAttribute('d', arc(local.c, local.w)); local.stopped = false; el.querySelector('.round').textContent = `${local.round + 1} of 3 · ${T.items[local.round]}`; };
+      start(); api.note(T.intro);
+      loop(local, (dt) => { if (local.stopped) return; local.angle = (local.angle + local.speed * dt) % 360; needle.setAttribute('transform', `rotate(${local.angle} 200 200)`); });
+      const stop = () => {
+        if (local.stopped) return; local.stopped = true;
+        let err = Math.abs(local.angle - local.c); err = Math.min(err, 360 - err);
+        const half = local.w / 2, pts = err <= half ? Math.round(100 - (err / half) * 30) : Math.round(clamp(60 - (err - half) * 3, 0, 60));
+        local.score += pts; el.querySelector('.score').textContent = local.score;
+        const line = err <= half * .3 ? T.lines[0] : err <= half * 1.6 ? T.lines[1] : T.lines[2];
+        if (err <= half * .3) { Sound().cheer(); Confetti().burst(90); } else if (err <= half) Sound().chime(); else Sound().wrong();
+        local.round++;
+        if (local.round >= 3) { api.finish(fill(T.win, { score: local.score }), undefined, { score: local.score, unit:'pts' }); return; }
+        api.note(`${line} +${pts}`);
+        setTimeout(() => { if (local.alive) start(); }, 1100);
+      };
+      el.querySelector('.dialwrap').addEventListener('pointerdown', (e) => { e.preventDefault(); stop(); });
+      local.onKey = (k) => { if (k === ' ' || k === 'Enter') { stop(); return true; } return false; };
+    },
+  },
+
+  /* ---- balance: keep the stack upright with left/right taps; three rounds, the stack grows ---- */
+  balance: {
+    doText: (T, touch) => touch ? `Tap the left or right side to keep ${T.noun} level. Ten seconds a round.` : `Left and Right arrows keep ${T.noun} level. Ten seconds a round.`,
+    actions: () => `<div class="pad"><button class="btn big" data-action="left">◀ Tilt</button><button class="btn big" data-action="right">Tilt ▶</button></div>${CONTINUE}`,
+    build(T) {
+      return `<div class="balwrap"><div class="balfield"><div class="stack">${T.emoji.slice(0, 6).map((e, i) => `<span class="emo item" data-i="${i}" hidden>${esc(e)}</span>`).join('')}<div class="tray"></div></div><div class="hand emo">🫴</div></div>
+        <div class="side"><div class="kicker">Round</div><div class="stat round">1 of 3</div><div class="stat huge clock">10.0</div><div class="pairs">seconds left</div></div></div>`;
+    },
+    init(el, local, api, T) {
+      const stack = el.querySelector('.stack');
+      Object.assign(local, { round:0, theta:0, omega:0, left:10, drift:0, fallen:false });
+      const start = () => { local.theta = rnd(-.08, .08); local.omega = 0; local.left = 10; local.fallen = false; el.querySelectorAll('.item').forEach((it, i) => { it.hidden = i >= (local.round + 1) * 2; }); el.querySelector('.round').textContent = `${local.round + 1} of 3`; stack.classList.remove('fall'); };
+      start(); api.note(T.intro);
+      loop(local, (dt, now) => {
+        if (local.fallen || local.done) return;
+        local.left -= dt; el.querySelector('.clock').textContent = Math.max(0, local.left).toFixed(1);
+        const wob = .6 + local.round * .5;
+        local.drift += (Math.sin(now / 900) + Math.sin(now / 370)) * .12 * wob * dt;
+        local.omega += (local.theta * 2.2 + local.drift) * dt; local.theta += local.omega * dt;
+        stack.style.transform = `rotate(${(local.theta * 57).toFixed(1)}deg)`;
+        if (Math.abs(local.theta) > .55) {
+          local.fallen = true; stack.classList.add('fall'); Sound().buzzer(); api.note(T.lines[0], true);
+          setTimeout(() => { if (local.alive) start(); }, 1400); return;
+        }
+        if (local.left <= 0) {
+          local.round++; Sound().chime();
+          if (local.round >= 3) { local.done = true; Sound().cheer(); Confetti().burst(150); api.finish(T.win); return; }
+          api.note(T.lines[local.round] || `Round ${local.round} held.`); start();
+        }
+      });
+      local.nudge = (dir) => { if (!local.fallen && !local.done) { local.omega += dir * .55; local.drift *= .5; Sound().blip(); } };
+      el.querySelector('.balfield').addEventListener('pointerdown', (e) => { e.preventDefault(); const r = e.currentTarget.getBoundingClientRect(); local.nudge(e.clientX < r.left + r.width / 2 ? -1 : 1); });
+      local.onKey = (k) => { if (k === 'ArrowLeft') { local.nudge(-1); return true; } if (k === 'ArrowRight') { local.nudge(1); return true; } return false; };
+    },
+    act(action, btn, el, local) { if (action === 'left') local.nudge(-1); if (action === 'right') local.nudge(1); },
+  },
+
+  /* ---- popcorn: catch what pops out of the pan before it lands; twenty, faster and faster ---- */
+  popcorn: {
+    goal: 20,
+    doText: (T, touch) => `${touch ? 'Tap' : 'Click'} each ${T.emoji[0] || 'one'} before it lands. Twenty of them.`,
+    actions: () => CONTINUE,
+    build(T) { return `<div class="sidewrap"><div class="popfield"><div class="pan emo">${esc(T.emoji[1] || '🍳')}</div></div><div class="side"><div class="kicker">Caught</div><div class="stat huge score">0 / ${this.goal}</div></div></div>`; },
+    init(el, local, api, T) {
+      const field = el.querySelector('.popfield'); const later = timers(local);
+      Object.assign(local, { spawned:0, caught:0, landed:0, live:[] });
+      api.note(T.intro);
+      const spawn = () => {
+        if (!local.alive || local.spawned >= this.goal) return;
+        const k = document.createElement('span'); k.className = 'kernel emo'; k.textContent = T.emoji[0] || '🍿';
+        const W = field.clientWidth, H = field.clientHeight;
+        const o = { el:k, x: W / 2 + rnd(-W * .1, W * .1), y: H - 30, vx: rnd(-W * .35, W * .35), vy: -rnd(H * 1.25, H * 1.7), dead:false };
+        k.addEventListener('pointerdown', (e) => { e.preventDefault(); catchIt(o); });
+        field.appendChild(k); local.live.push(o); local.spawned++;
+        later(spawn, Math.max(380, 1100 - local.spawned * 38));
+      };
+      const catchIt = (o) => { if (o.dead) return; o.dead = true; o.el.classList.add('caught'); local.caught++; Sound().blip(); el.querySelector('.score').textContent = `${local.caught} / ${this.goal}`; setTimeout(() => o.el.remove(), 250); check(); };
+      const check = () => { if (local.caught + local.landed >= this.goal && !local.done) { local.done = true; Sound().cheer(); Confetti().burst(120); api.finish(fill(T.win, { score: local.caught }), undefined, { score: local.caught, unit:`/ ${this.goal}` }); } };
+      later(spawn, 800);
+      loop(local, (dt) => {
+        const H = field.clientHeight;
+        for (const o of local.live) {
+          if (o.dead) continue;
+          o.vy += H * 2.2 * dt; o.x += o.vx * dt; o.y += o.vy * dt;
+          o.el.style.transform = `translate(${o.x}px, ${o.y}px) rotate(${o.x}deg)`;
+          if (o.y > H + 10) { o.dead = true; o.el.remove(); local.landed++; Sound().wrong(); api.note(pick(T.lines)); check(); }
+        }
+        local.live = local.live.filter(o => !o.dead);
+      });
+      local.onKey = (k) => { if (k !== ' ' && k !== 'Enter') return false; const top = local.live.filter(o => !o.dead).sort((a, b) => a.y - b.y)[0]; if (top) catchIt(top); return true; };
+    },
+  },
+
+  /* ---- redlight: hold to run; let go when the lookout turns; caught means back to the start ---- */
+  redlight: {
+    doText: (T, touch) => `${touch ? 'Hold the button' : 'Hold Space'} to run. Let go the instant ${T.items[0]} turns around.`,
+    actions: () => `<button class="btn big runbtn" type="button">HOLD TO RUN</button>${CONTINUE}`,
+    build(T) {
+      return `<div class="rlwrap"><div class="lookout emo" data-face="away">${esc(T.emoji[1] || '👀')}</div><div class="light"></div><div class="track"><div class="finish emo">${esc(T.emoji[2] || '🏁')}</div><div class="runner emo">${esc(T.emoji[0] || '🏃')}</div></div><div class="caughtmsg"></div></div>`;
+    },
+    init(el, local, api, T) {
+      Object.assign(local, { pos:0, held:false, phase:'green', t:rnd(1.4, 3), caught:0 });
+      const lookout = el.querySelector('.lookout'), light = el.querySelector('.light'), runner = el.querySelector('.runner'), track = el.querySelector('.track'), cm = el.querySelector('.caughtmsg');
+      api.note(T.intro);
+      const setPhase = (p, t) => { local.phase = p; local.t = t; light.dataset.phase = p; lookout.dataset.face = p === 'red' ? 'watching' : p === 'turning' ? 'turning' : 'away'; if (p === 'red') Sound().thud(); };
+      loop(local, (dt) => {
+        if (local.done) return;
+        local.t -= dt;
+        if (local.t <= 0) { if (local.phase === 'green') setPhase('turning', .38); else if (local.phase === 'turning') setPhase('red', rnd(1, 2.2)); else setPhase('green', rnd(1.2, 3)); }
+        if (local.phase === 'red' && !local.redAt) local.redAt = performance.now();
+        if (local.phase !== 'red') local.redAt = 0;
+        if (local.held && local.phase === 'red' && performance.now() - local.redAt > 140) {   /* still running while watched: caught (a short grace right after the turn) */
+          local.caught++; local.pos = 0; local.held = false;
+          Sound().buzzer(); cm.textContent = pick(T.lines); cm.classList.remove('show'); void cm.offsetWidth; cm.classList.add('show'); api.note(pick(T.lines), true);
+        } else if (local.held && local.phase !== 'red') { local.pos += .16 * dt; runner.classList.add('go'); }
+        else runner.classList.remove('go');
+        runner.style.left = (local.pos * (track.clientWidth - runner.clientWidth - 8)) + 'px';
+        if (local.pos >= 1) { local.done = true; runner.classList.add('win'); Sound().cheer(); Confetti().burst(150); api.finish(T.win + (local.caught ? ` Caught ${local.caught} time${local.caught > 1 ? 's' : ''} on the way.` : ' Never caught.')); }
+      });
+      hold(el, local, () => { local.held = true; }, () => { local.held = false; }, '.runbtn');
+    },
+  },
+
+  /* ---- slice: the knife sweeps; tap to cut; equal slices for everyone ---- */
+  slice: {
+    doText: (T, touch) => `${touch ? 'Tap' : 'Click or press Space'} to cut ${T.noun} into equal slices.`,
+    actions: () => CONTINUE,
+    build(T, ctx) {
+      return `<div class="sidewrap"><div class="cakewrap"><div class="cake" style="background:${ctx.palette.accent2}"><span class="emo cakeemo">${esc(T.emoji[0] || '🎂')}</span><div class="knife emo">🔪</div></div></div>
+        <div class="side"><div class="kicker">${esc(T.label)}</div><div class="stat huge cuts">0 cuts</div></div></div>`;
+    },
+    init(el, local, api, T) {
+      const N = clamp(parseInt((T.label.match(/\d+/) || [5])[0], 10) || 5, 3, 8), cake = el.querySelector('.cake'), knife = el.querySelector('.knife');
+      Object.assign(local, { x:0, dir:1, cuts:[] });
+      api.note(`${T.intro} ${N} slices, ${N - 1} cuts.`);
+      loop(local, (dt) => { if (local.done) return; local.x += local.dir * .55 * dt; if (local.x > 1) { local.x = 1; local.dir = -1; } if (local.x < 0) { local.x = 0; local.dir = 1; } knife.style.left = (local.x * 100) + '%'; });
+      const cut = () => {
+        if (local.done) return;
+        const x = local.x; local.cuts.push(x); Sound().thud();
+        const line = document.createElement('div'); line.className = 'cutline'; line.style.left = (x * 100) + '%'; cake.appendChild(line);
+        el.querySelector('.cuts').textContent = `${local.cuts.length} cut${local.cuts.length > 1 ? 's' : ''}`;
+        if (local.cuts.length < N - 1) return;
+        local.done = true;
+        const xs = [0, ...local.cuts.sort((a, b) => a - b), 1], ideal = 1 / N;
+        let err = 0; for (let i = 1; i < xs.length; i++) err += Math.abs((xs[i] - xs[i - 1]) - ideal);
+        const score = Math.round(clamp(100 - (err / (N - 1)) / ideal * 100, 0, 100));
+        if (score >= 85) { Sound().cheer(); Confetti().burst(130); } else Sound().chime();
+        api.finish(`${score >= 70 ? T.lines[0] : T.lines[1]} ${fill(T.win, { score })}`, undefined, { score, unit:'% even' });
+      };
+      el.querySelector('.cakewrap').addEventListener('pointerdown', (e) => { e.preventDefault(); cut(); });
+      local.onKey = (k) => { if (k === ' ' || k === 'Enter') { cut(); return true; } return false; };
+    },
+  },
+
+  /* ---- balloon: hold to inflate, let go before it pops; the pop point is secret; three rounds ---- */
+  balloon: {
+    doText: (T, touch) => `${touch ? 'Hold the button' : 'Hold Space'} to inflate ${T.noun}. Let go before it pops.`,
+    actions: () => `<button class="btn big runbtn" type="button">HOLD TO INFLATE</button>${CONTINUE}`,
+    build(T) { return `<div class="sidewrap"><div class="balloonfield"><span class="balloon emo">${esc(T.emoji[0] || '🎈')}</span><div class="pop">💥</div></div><div class="side"><div class="kicker">Round</div><div class="stat round">1 of 3</div><div class="stat huge size">0%</div><div class="pairs best">best 0%</div></div></div>`; },
+    init(el, local, api, T) {
+      Object.assign(local, { round:0, size:0, held:false, best:0, busy:false });
+      const b = el.querySelector('.balloon'), sizeEl = el.querySelector('.size');
+      const start = () => { local.size = 0; local.thr = rnd(58, 100); local.busy = false; b.classList.remove('gone'); el.querySelector('.pop').classList.remove('show'); el.querySelector('.round').textContent = `${local.round + 1} of 3`; };
+      start(); api.note(T.intro);
+      const settle = (popped) => {
+        local.busy = true; local.held = false;
+        const got = popped ? 0 : Math.round(local.size); local.best = Math.max(local.best, got);
+        el.querySelector('.best').textContent = `best ${local.best}%`;
+        if (popped) { b.classList.add('gone'); el.querySelector('.pop').classList.add('show'); Sound().buzzer(); api.note(T.lines[0], true); } else { Sound().chime(); api.note(`${T.lines[1]} ${got}%.`); }
+        local.round++;
+        if (local.round >= 3) { setTimeout(() => { if (local.alive) { Confetti().burst(120); api.finish(fill(T.win, { score: local.best }), undefined, { score: local.best, unit:'%' }); } }, 900); return; }
+        setTimeout(() => { if (local.alive) start(); }, 1300);
+      };
+      loop(local, (dt) => {
+        if (local.busy) return;
+        if (local.held) { local.size += 30 * dt; if (local.size >= local.thr) { settle(true); return; } }
+        sizeEl.textContent = Math.round(local.size) + '%'; b.style.transform = `scale(${(.6 + local.size / 100 * 2.4).toFixed(2)})`;
+      });
+      hold(el, local, () => { if (!local.busy) { local.held = true; local.wasHeld = true; } }, () => { if (local.held && !local.busy) settle(false); local.held = false; }, '.runbtn');
+    },
+  },
+
+  /* ---- pinata: tap the swinging piñata; fifteen hits and it breaks ---- */
+  pinata: {
+    goal: 15,
+    doText: (T, touch) => `${touch ? 'Tap' : 'Click, or press Space when it is in the middle:'} hit ${T.noun} as it swings. Fifteen hits breaks it.`,
+    actions: () => CONTINUE,
+    build(T) { return `<div class="sidewrap"><div class="pinfield"><div class="rope"></div><div class="pinata emo">${esc(T.emoji[0] || '🪅')}</div><div class="banner">${esc(T.shout)}</div></div><div class="side"><div class="kicker">Hits</div><div class="stat huge hits">0 / ${this.goal}</div></div></div>`; },
+    init(el, local, api, T) {
+      const field = el.querySelector('.pinfield'), pin = el.querySelector('.pinata'), rope = el.querySelector('.rope');
+      Object.assign(local, { t:0, hits:0, amp:.55, w:2.2 });
+      api.note(T.intro);
+      loop(local, (dt) => { if (local.done) return; local.t += dt; local.a = local.amp * Math.sin(local.t * local.w); rope.style.transform = `rotate(${(local.a * 57).toFixed(1)}deg)`; pin.style.transform = `rotate(${(local.a * 57).toFixed(1)}deg)`; });
+      const hit = () => {
+        if (local.done) return;
+        local.hits++; el.querySelector('.hits').textContent = `${local.hits} / ${this.goal}`; Sound().thud();
+        pin.classList.remove('hit'); void pin.offsetWidth; pin.classList.add('hit');
+        const candy = document.createElement('span'); candy.className = 'candy'; candy.textContent = T.items[(local.hits - 1) % T.items.length] || pick(T.lines);
+        const r = pin.getBoundingClientRect(), fr = field.getBoundingClientRect();
+        candy.style.left = (r.left - fr.left + r.width / 2) + 'px'; candy.style.top = (r.top - fr.top + r.height / 2) + 'px'; candy.style.setProperty('--dx', rnd(-140, 140) + 'px');
+        field.appendChild(candy); setTimeout(() => candy.remove(), 1300);
+        local.amp = Math.min(1.1, local.amp + .04); local.w += .12;
+        if (local.hits >= this.goal) { local.done = true; pin.classList.add('broke'); el.querySelector('.banner').classList.add('show'); Sound().cheer(); Confetti().burst(220); api.finish(T.win); }
+      };
+      pin.addEventListener('pointerdown', (e) => { e.preventDefault(); hit(); });
+      local.onKey = (k) => { if (k !== ' ' && k !== 'Enter') return false; if (Math.abs(local.a) < .22) hit(); else { Sound().wrong(); api.note('Swing and a miss. Wait for the middle.'); } return true; };
+    },
+  },
+
+  /* ---- missing: eight things, lights out, one is gone; six rounds ---- */
+  missing: {
+    doText: () => 'Memorize the eight. When the lights come back, tap the one that is missing.',
+    actions: () => CONTINUE,
+    build(T) { return `<div class="sidewrap"><div class="memgrid">${T.items.slice(0, 8).map((n, i) => `<div class="memcell" data-i="${i}"><span class="emo">${esc(T.emoji[i] || '')}</span><span class="nm">${esc(n)}</span></div>`).join('')}</div>
+      <div class="side"><div class="kicker">Round</div><div class="stat round">1 of 6</div><div class="choices"></div></div></div>`; },
+    init(el, local, api, T) {
+      const grid = el.querySelector('.memgrid'), choices = el.querySelector('.choices'); const later = timers(local);
+      Object.assign(local, { round:0, phase:'show' });
+      api.note(T.intro);
+      const show = () => {
+        local.phase = 'show'; choices.innerHTML = ''; grid.classList.remove('dark');
+        const order = shuffle([...Array(8).keys()]); order.forEach((i, k) => { const c = grid.querySelector(`.memcell[data-i="${i}"]`); c.style.order = k; c.hidden = false; });
+        el.querySelector('.round').textContent = `${local.round + 1} of 6`;
+        later(() => { grid.classList.add('dark'); local.phase = 'dark'; }, Math.max(1100, 2400 - local.round * 260));
+        later(() => {
+          local.gone = Math.floor(Math.random() * 8); grid.querySelector(`.memcell[data-i="${local.gone}"]`).hidden = true; grid.classList.remove('dark'); local.phase = 'ask';
+          const opts = shuffle([local.gone, ...shuffle([...Array(8).keys()].filter(i => i !== local.gone)).slice(0, 3)]);
+          choices.innerHTML = `<div class="kicker">Who is missing?</div>` + opts.map(i => `<button class="btn opt" data-action="guess" data-i="${i}" type="button"><span class="num">${T.emoji[i] ? esc(T.emoji[i]) : ''}</span><span class="lbl">${esc(T.items[i])}</span></button>`).join('');
+          api.note('Who is missing?');
+        }, Math.max(1100, 2400 - local.round * 260) + 800);
+      };
+      show();
+      local.guess = (i, btn) => {
+        if (local.phase !== 'ask') return;
+        if (i === local.gone) {
+          Sound().chime(); local.round++; local.phase = 'show';
+          if (local.round >= 6) { Confetti().burst(140); Sound().cheer(); api.finish(T.win); return; }
+          api.note(T.lines[0]); later(show, 700);
+        } else { Sound().wrong(); btn.disabled = true; btn.classList.add('wrong'); api.note(T.lines[1]); }
+      };
+    },
+    act(action, btn, el, local) { if (action === 'guess') local.guess(+btn.dataset.i, btn); },
+  },
+
+  /* ---- shell: their face under a cup; the cups shuffle; three rounds, faster ---- */
+  shell: {
+    doText: (T, touch) => `Watch which ${T.noun.replace(/s$/, '')} hides them, follow the shuffle, then ${touch ? 'tap' : 'click or press 1-3 on'} the right one.`,
+    actions: () => CONTINUE,
+    build(T, ctx) { return `<div class="sidewrap"><div class="shellfield">${[0, 1, 2].map(i => `<div class="cup" data-i="${i}"><span class="emo cupemo">${esc(T.emoji[0] || '🥤')}</span><div class="under">${faceHTML(ctx, T.emoji[1] || '🙂', 'tokenpic')}</div><span class="key">${i + 1}</span></div>`).join('')}</div>
+      <div class="side"><div class="kicker">Round</div><div class="stat round">1 of 3</div></div></div>`; },
+    init(el, local, api, T) {
+      const cups = [...el.querySelectorAll('.cup')]; const later = timers(local);
+      Object.assign(local, { round:0, pos:[0, 1, 2], phase:'wait' });   /* pos[cupIndex] = slot */
+      const place = (ms) => cups.forEach((c, i) => { c.style.transition = `transform ${ms}ms ease-in-out`; c.style.transform = `translateX(${(local.pos[i] - i) * 100}%)`; });
+      const start = () => {
+        local.phase = 'wait'; local.pos = [0, 1, 2]; local.ball = Math.floor(Math.random() * 3); place(0);
+        cups.forEach((c, i) => { c.classList.remove('up', 'wrong'); c.querySelector('.under').hidden = i !== local.ball; });
+        el.querySelector('.round').textContent = `${local.round + 1} of 3`;
+        api.note('Watch...'); cups[local.ball].classList.add('up');
+        later(() => { cups[local.ball].classList.remove('up'); later(swaps, 500); }, 1300);
+      };
+      const swaps = () => {
+        local.phase = 'shuffle'; const n = 4 + local.round * 3, ms = Math.max(240, 520 - local.round * 120); let k = 0;
+        const one = () => {
+          if (k++ >= n) { local.phase = 'ask'; api.note('Where are they?'); return; }
+          const a = Math.floor(Math.random() * 3); let b = Math.floor(Math.random() * 3); if (b === a) b = (a + 1) % 3;
+          const ia = local.pos.indexOf(a), ib = local.pos.indexOf(b); local.pos[ia] = b; local.pos[ib] = a; place(ms); Sound().blip();
+          later(one, ms + 60);
+        };
+        one();
+      };
+      start();
+      local.pickSlot = (slot) => {
+        if (local.phase !== 'ask') return;
+        const cup = local.pos.indexOf(slot); cups[cup].classList.add('up');
+        if (cup === local.ball) {
+          local.phase = 'wait'; Sound().chime(); local.round++;
+          if (local.round >= 3) { Sound().cheer(); Confetti().burst(140); api.finish(T.win); return; }
+          api.note(T.lines[0]); later(start, 1100);
+        } else { local.phase = 'wait'; cups[cup].classList.add('wrong'); cups[local.ball].classList.add('up'); Sound().wrong(); api.note(T.lines[1] + ' Again.'); later(start, 1400); }
+      };
+      el.querySelector('.shellfield').addEventListener('pointerdown', (e) => { const c = e.target.closest('.cup'); if (!c) return; e.preventDefault(); local.pickSlot(local.pos[+c.dataset.i]); });
+      local.onKey = (k) => { if (/^[1-3]$/.test(k)) { local.pickSlot(+k - 1); return true; } return false; };
+    },
+  },
+
+  /* ---- count: a one-second flash of a crowd; how many? five rounds ---- */
+  count: {
+    doText: (T) => `One second to count the ${T.noun}. Then pick the number.`,
+    actions: () => CONTINUE,
+    build(T) { return `<div class="sidewrap"><div class="countfield"><div class="flashwrap"></div><div class="opts n4 countopts"></div></div><div class="side"><div class="kicker">Round</div><div class="stat round">1 of 5</div></div></div>`; },
+    init(el, local, api, T) {
+      const wrap = el.querySelector('.flashwrap'), opts = el.querySelector('.countopts'); const later = timers(local);
+      Object.assign(local, { round:0, phase:'wait' });
+      const show = () => {
+        local.n = 5 + Math.floor(rnd(0, 4)) + local.round * 3; opts.innerHTML = ''; wrap.innerHTML = '';
+        const W = wrap.clientWidth, H = wrap.clientHeight, pts = [];
+        for (let i = 0; i < local.n; i++) { let p, tries = 0; do { p = [rnd(6, 94), rnd(8, 88)]; tries++; } while (tries < 40 && pts.some(q => Math.hypot(q[0] - p[0], (q[1] - p[1]) * H / W) < 7)); pts.push(p); wrap.insertAdjacentHTML('beforeend', `<span class="emo cnt" style="left:${p[0]}%;top:${p[1]}%">${esc(T.emoji[0] || '🧑')}</span>`); }
+        el.querySelector('.round').textContent = `${local.round + 1} of 5`; api.note('Look!'); local.phase = 'show';
+        later(() => {
+          wrap.innerHTML = ''; local.phase = 'ask'; api.note('How many?');
+          const cands = new Set([local.n]); while (cands.size < 4) cands.add(clamp(local.n + Math.round(rnd(-4, 4)) || local.n + 1, 1, 99));
+          opts.innerHTML = shuffle([...cands]).map(v => `<button class="btn opt" data-action="guess" data-v="${v}" type="button"><span class="lbl">${v}</span></button>`).join('');
+        }, 1000);
+      };
+      later(show, 900); api.note(T.intro);
+      local.guess = (v, btn) => {
+        if (local.phase !== 'ask') return;
+        if (v === local.n) { Sound().chime(); local.round++; local.phase = 'wait'; if (local.round >= 5) { Sound().cheer(); Confetti().burst(140); api.finish(T.win); return; } api.note(T.lines[0]); later(show, 800); }
+        else { Sound().wrong(); btn.disabled = true; btn.classList.add('wrong'); api.note(T.lines[1]); }
+      };
+    },
+    act(action, btn, el, local) { if (action === 'guess') local.guess(+btn.dataset.v, btn); },
+  },
+
+  /* ---- draw: twenty seconds to draw them; in party mode every drawing lands on the host screen ---- */
+  draw: {
+    doText: (T, touch) => `${touch ? 'Draw with a finger' : 'Draw with the mouse'}: ${T.label}. Twenty seconds.`,
+    actions: () => `<button class="btn big" data-action="done">Done</button>${CONTINUE}`,
+    build(T, ctx) {
+      const cols = ['#ffffff', '#111111', ctx.palette.accent, ctx.palette.accent2, '#e74c3c'];
+      return `<div class="drawwrap"><div class="drawside"><canvas class="sketch" width="360" height="360"></canvas><div class="swatches">${cols.map((c, i) => `<button class="sw ${i === 0 ? 'on' : ''}" data-action="color" data-c="${c}" style="background:${c}" type="button"></button>`).join('')}<button class="sw clear" data-action="clear" type="button">↺</button></div></div>
+        <div class="side"><div class="kicker">Time</div><div class="stat huge clock">20</div>${ctx.heroPhoto ? `<img class="refpic" src="${esc(ctx.src(ctx.heroPhoto))}" alt="">` : ''}</div>
+        <div class="gallery" hidden></div></div>`;
+    },
+    init(el, local, api, T, ctx) {
+      const cv = el.querySelector('.sketch'), cx = cv.getContext('2d'); cx.lineCap = 'round'; cx.lineJoin = 'round'; cx.lineWidth = 7; cx.strokeStyle = '#ffffff'; cx.fillStyle = '#1b2233'; cx.fillRect(0, 0, 360, 360);
+      Object.assign(local, { left:20, drawing:false, done:false });
+      api.note(T.lines[0] || T.intro);
+      const pt = (e) => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * 360 / r.width, (e.clientY - r.top) * 360 / r.height]; };
+      cv.addEventListener('pointerdown', (e) => { if (local.done) return; e.preventDefault(); cv.setPointerCapture(e.pointerId); local.drawing = true; const [x, y] = pt(e); cx.beginPath(); cx.moveTo(x, y); cx.lineTo(x + .1, y); cx.stroke(); });
+      cv.addEventListener('pointermove', (e) => { if (!local.drawing || local.done) return; const [x, y] = pt(e); cx.lineTo(x, y); cx.stroke(); });
+      ['pointerup', 'pointercancel'].forEach(t => cv.addEventListener(t, () => { local.drawing = false; }));
+      loop(local, (dt) => { if (local.done) return; local.left -= dt; el.querySelector('.clock').textContent = Math.max(0, Math.ceil(local.left)); if (local.left <= 0) local.finish(); });
+      local.finish = () => {
+        if (local.done) return; local.done = true; Sound().chime(); el.querySelectorAll('[data-action="done"], .swatches').forEach(b => b.hidden = true);
+        const png = cv.toDataURL('image/png');
+        if (ctx.mp && ctx.mp.role) { ctx.mp.drawing(png); api.finish(ctx.mp.role === 'host' ? `${T.lines[1]} Drawings from the room land below; tap the winner.` : `${T.lines[1]} Sent to the host screen. ${T.win}`); }
+        else api.finish(`${T.lines[1]} ${T.win}`);
+      };
+      if (ctx.mp) {                       /* room drawings, if a room exists now or is opened later */
+        const gal = el.querySelector('.gallery');
+        local.gallery = (rows, crown) => {
+          gal.hidden = false;
+          gal.innerHTML = `<div class="kicker">The gallery${crown ? ` · winner: ${esc(crown)}` : ''}</div><div class="galrow">${Object.entries(rows).map(([k, v]) => `<figure class="galpic ${crown === v.name ? 'crowned' : ''}" data-action="crown" data-k="${esc(k)}"><img src="${esc(v.png)}" alt=""><figcaption>${esc(v.name)}</figcaption></figure>`).join('')}</div>`;
+        };
+        ctx.mp.onGallery = local.gallery; ctx.mp.requestGallery();
+      }
+    },
+    act(action, btn, el, local, api, T, ctx) {
+      if (action === 'done') local.finish();
+      if (action === 'color') { el.querySelector('.sketch').getContext('2d').strokeStyle = btn.dataset.c; el.querySelectorAll('.sw').forEach(s => s.classList.toggle('on', s === btn)); }
+      if (action === 'clear') { const cx = el.querySelector('.sketch').getContext('2d'); cx.fillStyle = '#1b2233'; cx.fillRect(0, 0, 360, 360); }
+      if (action === 'crown' && ctx.mp && ctx.mp.role === 'host') ctx.mp.crown(btn.dataset.k);
+    },
+  },
+
+  /* ---- scramble: a photo of them in nine sliding tiles ---- */
+  scramble: {
+    doText: (T, touch) => `${touch ? 'Tap' : 'Click, or use the arrows on'} a tile next to the gap to slide it. Rebuild ${T.noun}.`,
+    actions: () => CONTINUE,
+    build(T, ctx) {
+      const src = esc(ctx.src(T.photo || ctx.heroPhoto));
+      return `<div class="sidewrap"><div class="puzzle" style="--img:url('${src}')">${[...Array(9).keys()].map(i => `<div class="tile" data-i="${i}"></div>`).join('')}</div>
+        <div class="side"><div class="kicker">Time</div><div class="stat huge timer">0 s</div><img class="refpic" src="${src}" alt=""></div></div>`;
+    },
+    init(el, local, api, T) {
+      const tiles = [...el.querySelectorAll('.tile')];
+      let pos = [...Array(9).keys()];                   /* pos[slot] = tile id; tile 8 is the gap */
+      const draw = () => tiles.forEach(t => { const id = +t.dataset.i, slot = pos.indexOf(id); t.style.transform = `translate(${(slot % 3) * 100}%, ${Math.floor(slot / 3) * 100}%)`; t.style.backgroundPosition = `${(id % 3) * 50}% ${Math.floor(id / 3) * 50}%`; t.classList.toggle('gap', id === 8); });
+      const adj = (a, b) => (Math.abs(a - b) === 3) || (Math.abs(a - b) === 1 && Math.floor(a / 3) === Math.floor(b / 3));
+      const move = (slot) => { const gap = pos.indexOf(8); if (!adj(slot, gap)) return false; [pos[slot], pos[gap]] = [pos[gap], pos[slot]]; return true; };
+      let last = -1; for (let i = 0; i < 60; i++) { const gap = pos.indexOf(8), cands = [...Array(9).keys()].filter(s => adj(s, gap) && s !== last); const s = pick(cands); last = gap; move(s); }
+      if (pos.every((v, i) => v === i)) move(pos.indexOf(8) - 1);
+      draw(); api.note(T.lines[0] || T.intro);
+      local.t0 = null; local.timer = setInterval(() => { if (local.t0 && !local.done) el.querySelector('.timer').textContent = Math.floor((performance.now() - local.t0) / 1000) + ' s'; }, 200); local.cleanup = () => clearInterval(local.timer);
+      const tap = (slot) => {
+        if (local.done) return; if (!local.t0) local.t0 = performance.now();
+        if (!move(slot)) return; Sound().blip(); draw();
+        if (pos.every((v, i) => v === i)) { local.done = true; el.querySelector('.puzzle').classList.add('solved'); const secs = Math.max(1, Math.round((performance.now() - local.t0) / 1000)); el.querySelector('.timer').textContent = secs + ' s'; Sound().cheer(); Confetti().burst(150); api.finish(fill(T.win, { secs })); }
+      };
+      el.querySelector('.puzzle').addEventListener('pointerdown', (e) => { const t = e.target.closest('.tile'); if (!t) return; e.preventDefault(); tap(pos.indexOf(+t.dataset.i)); });
+      local.onKey = (k) => { const gap = pos.indexOf(8), d = { ArrowUp:3, ArrowDown:-3, ArrowLeft:1, ArrowRight:-1 }[k]; if (d === undefined) return false; const s = gap + d; if (s >= 0 && s < 9) tap(s); return true; };
+    },
+  },
+
+  /* ---- flappy: their face flaps through the gaps; score is gaps passed ---- */
+  flappy: {
+    doText: (T, touch) => `${touch ? 'Tap' : 'Click or press Space'} to flap. Get through the ${T.items[0] || 'gaps'}.`,
+    actions: () => `<button class="btn ghostbtn" data-action="again" hidden>Fly again</button>${CONTINUE}`,
+    build(T, ctx) { return `<div class="sidewrap"><div class="sky"><div class="bird">${faceHTML(ctx, T.emoji[0] || '🐦', 'birdpic')}</div><div class="pipes"></div><div class="tapmsg">${ctx.touch ? 'Tap to start' : 'Click or Space to start'}</div></div><div class="side"><div class="kicker">Gaps</div><div class="stat huge score">0</div><div class="pairs best"></div></div></div>`; },
+    init(el, local, api, T, ctx) {
+      const sky = el.querySelector('.sky'), bird = el.querySelector('.bird'), pipes = el.querySelector('.pipes');
+      const reset = () => { Object.assign(local, { y:.45, vy:0, started:false, dead:false, score:0, dist:0, list:[] }); pipes.innerHTML = ''; bird.style.transform = ''; el.querySelector('.score').textContent = '0'; el.querySelector('.tapmsg').hidden = false; el.querySelectorAll('[data-action="again"], [data-action="next"]').forEach(b => b.hidden = true); api.reset(T.intro, this.doText(T, ctx.touch)); };
+      reset(); local.best = 0;
+      const flap = () => { if (local.dead) return; if (!local.started) { local.started = true; el.querySelector('.tapmsg').hidden = true; } local.vy = -.62; Sound().blip(); };
+      const addPipe = () => { const gapY = rnd(.22, .78), gap = .3; const p = document.createElement('div'); p.className = 'pipe'; p.innerHTML = `<div class="top" style="height:${(gapY - gap / 2) * 100}%"><span class="emo">${esc(T.emoji[1] || '')}</span></div><div class="bot" style="top:${(gapY + gap / 2) * 100}%"><span class="emo">${esc(T.emoji[1] || '')}</span></div>`; pipes.appendChild(p); local.list.push({ el:p, x:1.05, gapY, gap, passed:false }); };
+      loop(local, (dt) => {
+        if (!local.started || local.dead) return;
+        local.vy += 1.9 * dt; local.y += local.vy * dt; local.dist += dt;
+        bird.style.top = (local.y * 100) + '%'; bird.style.transform = `rotate(${clamp(local.vy * 60, -25, 70)}deg)`;
+        if (local.list.length === 0 || local.list[local.list.length - 1].x < .55) addPipe();
+        const H = sky.clientHeight, W = sky.clientWidth, bw = bird.clientWidth / W, bh = bird.clientHeight / H, bx = .22;
+        for (const p of local.list) {
+          p.x -= .36 * dt; p.el.style.left = (p.x * 100) + '%';
+          const pw = 64 / W;
+          if (!p.passed && p.x + pw < bx) { p.passed = true; local.score++; el.querySelector('.score').textContent = local.score; Sound().chime(); }
+          const overlapX = bx + bw * .8 > p.x && bx + bw * .2 < p.x + pw;
+          if (overlapX && (local.y + bh * .2 < p.gapY - p.gap / 2 || local.y + bh * .8 > p.gapY + p.gap / 2)) local.dead = true;
+        }
+        local.list = local.list.filter(p => { if (p.x < -.2) { p.el.remove(); return false; } return true; });
+        if (local.y > 1 - bh || local.y < 0) local.dead = true;
+        if (local.dead) {
+          Sound().buzzer(); bird.classList.add('crash'); local.best = Math.max(local.best, local.score); el.querySelector('.best').textContent = `best ${local.best}`;
+          if (local.score >= 3) Confetti().burst(80);
+          api.finish(`${pick(T.lines)} ${fill(T.win, { score: local.score })}`, 'Press Continue, or fly again.', { score: local.best, unit:'gaps' });
+          el.querySelectorAll('[data-action="again"]').forEach(b => b.hidden = false);
+        }
+      });
+      sky.addEventListener('pointerdown', (e) => { e.preventDefault(); flap(); });
+      local.onKey = (k) => { if (k === ' ' || k === 'Enter') { if (local.dead) return false; flap(); return true; } return false; };
+      local.again = () => { bird.classList.remove('crash'); reset(); };
+    },
+    act(action, btn, el, local) { if (action === 'again') local.again(); },
   },
 };
 })();

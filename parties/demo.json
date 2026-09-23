@@ -1,9 +1,16 @@
 {
   "v": 1,
   "id": "demo-sam",
-  "person": { "name": "Sam", "age": 40 },
+  "person": {
+    "name": "Sam",
+    "age": 40
+  },
   "from": "everyone who has ever waited for Sam in a driveway",
-  "isms": ["Five more minutes.", "I'm basically a chef.", "Let me circle back on that."],
+  "isms": [
+    "Five more minutes.",
+    "I'm basically a chef.",
+    "Let me circle back on that."
+  ],
   "title": {
     "kicker": "The official record · a birthday in three chapters",
     "title": "SAM AT 40",
@@ -17,23 +24,46 @@
       "name": "The Cul-de-Sac",
       "badge": "Streetlight Curfew",
       "glyph": "🚲",
-      "palette": { "bg": "#1d3a24", "bg2": "#6fae52", "accent": "#ffd23f", "accent2": "#c8553d", "btn": "#ffd23f", "btnText": "#33270a" },
-      "scene": { "preset": "hills" },
+      "palette": {
+        "bg": "#1d3a24",
+        "bg2": "#6fae52",
+        "accent": "#ffd23f",
+        "accent2": "#c8553d",
+        "btn": "#ffd23f",
+        "btnText": "#33270a"
+      },
+      "scene": {
+        "preset": "hills"
+      },
       "arrival": {
         "text": "A quiet street, a ten-speed with one working brake, and a kid who was told to be home when the streetlights came on. Sam heard \"when the streetlights come on\" as the opening bid in a negotiation. Every neighbor on the block has, at some point, been asked for five more minutes."
       },
       "choice": {
         "question": "It's 1994. The streetlights just came on. Where is Sam?",
         "options": [
-          { "label": "Pedaling home at top speed", "reaction": "Nice try. That bike did not have a top speed. It had a rattle and a dream." },
-          { "label": "Three streets over, mid-negotiation", "reaction": "\"Five more minutes.\" It has been thirty years. We are all still waiting on those five minutes." },
-          { "label": "Already home, setting the table", "reaction": "Nobody in this room believes that, including Sam." }
+          {
+            "label": "Pedaling home at top speed",
+            "reaction": "Nice try. That bike did not have a top speed. It had a rattle and a dream."
+          },
+          {
+            "label": "Three streets over, mid-negotiation",
+            "reaction": "\"Five more minutes.\" It has been thirty years. We are all still waiting on those five minutes."
+          },
+          {
+            "label": "Already home, setting the table",
+            "reaction": "Nobody in this room believes that, including Sam."
+          }
         ]
       },
       "trivia": [
         {
           "question": "What did young Sam want to be when they grew up?",
-          "options": ["An astronaut", "A veterinarian", "A professional snack reviewer", "Taller"],
+          "options": [
+            "An astronaut",
+            "A veterinarian",
+            "A professional snack reviewer",
+            "Taller"
+          ],
           "answer": 2,
           "reaction": "A professional snack reviewer. The dream is technically still alive, and frankly the portfolio is strong."
         }
@@ -43,8 +73,26 @@
         "title": "The Lost & Found Box",
         "noun": "lost things",
         "intro": "Everything Sam lost before the age of twelve. Turn over two at a time. The clock starts on your first flip.",
-        "items": ["Left Mitten", "Retainer", "House Key", "Library Book", "Lunchbox", "Bike Lock", "Permission Slip", "Other Mitten"],
-        "emoji": ["🧤", "😬", "🔑", "📚", "🥪", "🔒", "📝", "🧤"],
+        "items": [
+          "Left Mitten",
+          "Retainer",
+          "House Key",
+          "Library Book",
+          "Lunchbox",
+          "Bike Lock",
+          "Permission Slip",
+          "Other Mitten"
+        ],
+        "emoji": [
+          "🧤",
+          "😬",
+          "🔑",
+          "📚",
+          "🥪",
+          "🔒",
+          "📝",
+          "🧤"
+        ],
         "label": "❓",
         "win": "All eight pairs in {secs} seconds. That is faster than Sam has ever found anything."
       }
@@ -53,23 +101,46 @@
       "name": "State School",
       "badge": "Dean's List (Adjacent)",
       "glyph": "🎓",
-      "palette": { "bg": "#1b1f4b", "bg2": "#3c4aa8", "accent": "#ffb347", "accent2": "#a61e4d", "btn": "#ffb347", "btnText": "#2b1705" },
-      "scene": { "preset": "room" },
+      "palette": {
+        "bg": "#1b1f4b",
+        "bg2": "#3c4aa8",
+        "accent": "#ffb347",
+        "accent2": "#a61e4d",
+        "btn": "#ffb347",
+        "btnText": "#2b1705"
+      },
+      "scene": {
+        "preset": "room"
+      },
       "arrival": {
         "text": "A dorm room the size of a parking space, a hot plate that was absolutely not allowed, and the first recorded use of the phrase \"I'm basically a chef.\" The dish was ramen with a slice of American cheese on it. The fire alarm gave it two stars."
       },
       "choice": {
         "question": "It's finals week. What is Sam's study strategy?",
         "options": [
-          { "label": "Color-coded flash cards, started in October", "reaction": "The flash cards exist. They were purchased in October. They are still in the shrink wrap." },
-          { "label": "\"I work better under pressure\"", "reaction": "A thing Sam has said before every deadline since 2003. The pressure has never once agreed." },
-          { "label": "Cooking an elaborate meal instead", "reaction": "\"I'm basically a chef.\" The exam was at 9. The risotto was ready at 9:15. It was, annoyingly, very good." }
+          {
+            "label": "Color-coded flash cards, started in October",
+            "reaction": "The flash cards exist. They were purchased in October. They are still in the shrink wrap."
+          },
+          {
+            "label": "\"I work better under pressure\"",
+            "reaction": "A thing Sam has said before every deadline since 2003. The pressure has never once agreed."
+          },
+          {
+            "label": "Cooking an elaborate meal instead",
+            "reaction": "\"I'm basically a chef.\" The exam was at 9. The risotto was ready at 9:15. It was, annoyingly, very good."
+          }
         ]
       },
       "trivia": [
         {
           "question": "How many times did Sam change majors?",
-          "options": ["Never. Laser focus.", "Once", "Four times", "It is still technically undeclared"],
+          "options": [
+            "Never. Laser focus.",
+            "Once",
+            "Four times",
+            "It is still technically undeclared"
+          ],
           "answer": 2,
           "reaction": "Four. Each one was \"definitely the one.\" The fifth was graduation, and everyone agreed not to ask questions."
         }
@@ -78,9 +149,21 @@
         "kind": "order",
         "title": "Sam Makes Dinner",
         "intro": "Five steps. One right order. A wrong press sets off the smoke alarm and resets the whole thing.",
-        "items": ["Announce \"I'm basically a chef\"", "Use every pan in the building", "Set off the smoke alarm", "Serve at 10:45 p.m.", "Leave the dishes \"to soak\""],
+        "items": [
+          "Announce \"I'm basically a chef\"",
+          "Use every pan in the building",
+          "Set off the smoke alarm",
+          "Serve at 10:45 p.m.",
+          "Leave the dishes \"to soak\""
+        ],
         "label": "KITCHEN HEAT",
-        "lines": ["The announcement has been made. Brace.", "Every pan. Including one nobody has seen before.", "BEEP BEEP BEEP. Right on schedule.", "Dinner is served. It is nearly tomorrow.", "BZZT. That is not how Sam cooks. Start from the top."],
+        "lines": [
+          "The announcement has been made. Brace.",
+          "Every pan. Including one nobody has seen before.",
+          "BEEP BEEP BEEP. Right on schedule.",
+          "Dinner is served. It is nearly tomorrow.",
+          "BZZT. That is not how Sam cooks. Start from the top."
+        ],
         "shout": "BON APPÉTIT",
         "win": "A flawless Sam dinner. Delicious, late, and the dishes are still soaking to this day."
       }
@@ -89,23 +172,46 @@
       "name": "The Calendar Years",
       "badge": "Reply-All Survivor",
       "glyph": "💼",
-      "palette": { "bg": "#14262e", "bg2": "#2f6f7a", "accent": "#ff8a5c", "accent2": "#5b3a8c", "btn": "#ff8a5c", "btnText": "#2b1005" },
-      "scene": { "preset": "city" },
+      "palette": {
+        "bg": "#14262e",
+        "bg2": "#2f6f7a",
+        "accent": "#ff8a5c",
+        "accent2": "#5b3a8c",
+        "btn": "#ff8a5c",
+        "btnText": "#2b1005"
+      },
+      "scene": {
+        "preset": "city"
+      },
       "arrival": {
         "text": "A real job, a real badge, and a calendar that looks like a game of Tetris played by someone who is losing. Sam learned the four most powerful words in business, \"let me circle back,\" and has been circling ever since. Somehow, every single person Sam has worked with would work with them again. That part is not a joke."
       },
       "choice": {
         "question": "The meeting could have been an email. What does Sam do?",
         "options": [
-          { "label": "Says so, out loud, in the meeting", "reaction": "Brave. Correct. The room went quiet. Three people sent Sam a thank-you note afterward." },
-          { "label": "\"Let me circle back on that\"", "reaction": "The circle has never once closed. Geometrically, it is a spiral." },
-          { "label": "Arrives five minutes late with snacks for everyone", "reaction": "Late, as always. Forgiven, as always. Those were good snacks." }
+          {
+            "label": "Says so, out loud, in the meeting",
+            "reaction": "Brave. Correct. The room went quiet. Three people sent Sam a thank-you note afterward."
+          },
+          {
+            "label": "\"Let me circle back on that\"",
+            "reaction": "The circle has never once closed. Geometrically, it is a spiral."
+          },
+          {
+            "label": "Arrives five minutes late with snacks for everyone",
+            "reaction": "Late, as always. Forgiven, as always. Those were good snacks."
+          }
         ]
       },
       "trivia": [
         {
           "question": "How many unread emails does Sam have right now?",
-          "options": ["Zero. Inbox zero.", "About forty", "14,212", "Sam will circle back on that"],
+          "options": [
+            "Zero. Inbox zero.",
+            "About forty",
+            "14,212",
+            "Sam will circle back on that"
+          ],
           "answer": 2,
           "reaction": "14,212, and one of them is from you. Forty years in, the inbox is a mess and the friendships are spotless."
         }
@@ -114,17 +220,38 @@
         "kind": "brawl",
         "title": "Sam vs. The Inbox",
         "intro": "FIGHT!",
-        "items": ["THE INBOX", "ARCHIVED!", "UNSUBSCRIBE!", "MARK AS READ!", "DELETE!", "REPLY ALL!"],
-        "emoji": ["📬", "🕺"],
-        "lines": ["ping", "per my last email", "gentle reminder"],
+        "items": [
+          "THE INBOX",
+          "ARCHIVED!",
+          "UNSUBSCRIBE!",
+          "MARK AS READ!",
+          "DELETE!",
+          "REPLY ALL!"
+        ],
+        "label": "box",
+        "emoji": [
+          "📬",
+          "📎"
+        ],
+        "lines": [
+          "per my last email",
+          "gentle reminder",
+          "circling back"
+        ],
         "shout": "K.O.! Inbox zero.",
         "win": "The Inbox is down. It will be back by Monday, but tonight belongs to Sam."
       }
     }
   ],
   "messages": [
-    { "who": "The old street", "msg": "We left the porch light on. You can come home whenever. Five more minutes is fine." },
-    { "who": "The roommates", "msg": "We still talk about the risotto. We also still talk about the smoke alarm. Happy birthday, chef." }
+    {
+      "who": "The old street",
+      "msg": "We left the porch light on. You can come home whenever. Five more minutes is fine."
+    },
+    {
+      "who": "The roommates",
+      "msg": "We still talk about the risotto. We also still talk about the smoke alarm. Happy birthday, chef."
+    }
   ],
   "finale": {
     "heading": "The last page",

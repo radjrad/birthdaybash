@@ -20,7 +20,7 @@ const PEER_SRC = 'https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js';
 const PREFIX = 'bbash-';
 const ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
-const state = { role:null, code:'', peer:null, conns:new Map(), host:null, name:'', players:new Map(), quiz:{}, times:{}, i:0, panel:null, status:'' };
+const state = { role:null, code:'', peer:null, conns:new Map(), host:null, name:'', players:new Map(), quiz:{}, times:{}, draws:{}, crowns:{}, i:0, panel:null, status:'' };
 BB.mp = { get role() { return state.role; }, get following() { return state.role === 'guest'; } };
 
 /* ---------- helpers ---------- */
@@ -61,9 +61,10 @@ function render() {
   const n = state.players.size + 1;                 /* guests plus the host screen */
   let body = '';
   if (screen && screen.type === 'mini') {
-    const rows = Object.entries(state.times[sid] || {}).map(([k, v]) => ({ name: v.name, ms: v.ms })).sort((a, b) => a.ms - b.ms);
+    const scored = Object.values(state.times[sid] || {}).some(v => v.score !== undefined);
+    const rows = Object.entries(state.times[sid] || {}).map(([k, v]) => ({ name: v.name, ms: v.ms, score: v.score, unit: v.unit })).sort((a, b) => scored ? (b.score || 0) - (a.score || 0) : a.ms - b.ms);
     body = `<div class="mp-h">Leaderboard · ${esc(BB.party.chapters[screen.chapter].mini.title)}</div>` +
-      (rows.length ? `<ol class="mp-board">${rows.slice(0, 8).map(r => `<li><span>${esc(r.name)}</span><b>${fmt(r.ms)}</b></li>`).join('')}</ol>` : `<div class="mp-dim">No times yet. ${n > 1 ? 'Everyone is playing...' : 'Waiting for players...'}</div>`) +
+      (rows.length ? `<ol class="mp-board">${rows.slice(0, 8).map(r => `<li><span>${esc(r.name)}</span><b>${scored ? `${r.score} ${esc(r.unit || '')}` : fmt(r.ms)}</b></li>`).join('')}</ol>` : `<div class="mp-dim">No times yet. ${n > 1 ? 'Everyone is playing...' : 'Waiting for players...'}</div>`) +
       `${rows.length < n ? `<div class="mp-dim">${n - rows.length} still playing</div>` : ''}` +
       (state.role === 'guest' && !state.skipped[sid] && !(state.times[sid] || {})[state.selfKey] ? `<button class="mp-btn" data-mp="skip">Skip this game</button>` : '');
   } else if (screen && screen.type === 'trivia') {
@@ -82,6 +83,8 @@ function render() {
 /* ---------- host ---------- */
 function broadcast(msg, except) { const s = JSON.stringify(msg); for (const [id, c] of state.conns) if (id !== except && c.open) { try { c.send(s); } catch (e) {} } }
 function hostSnapshot() { return { t:'sync', i: state.i, players: [...state.players.values()], times: state.times, quiz: state.quiz, pid: BB.party.id }; }
+const SCORE = (m) => (Number.isFinite(m.score) ? { score: Math.round(clamp(m.score, 0, 99999)), unit: clean(m.unit, 12) } : {});
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 async function host() {
   for (let tries = 0; tries < 5; tries++) {
     const code = code4();
@@ -104,7 +107,9 @@ function onHostData(c, raw) {
   if (!m || typeof m !== 'object') return;
   if (m.t === 'hello') { state.players.set(c.peer, clean(m.name) || 'Guest'); broadcast({ t:'players', players:[...state.players.values()] }); render(); return; }
   const name = state.players.get(c.peer) || 'Guest', sid = clean(m.screen, 40);
-  if (m.t === 'time' && Number.isFinite(m.ms) && m.ms > 0 && m.ms < 36e5) { (state.times[sid] = state.times[sid] || {})[c.peer] = { name, ms: Math.round(m.ms) }; broadcast({ t:'board', screen:sid, rows: state.times[sid] }); render(); }
+  if (m.t === 'time' && Number.isFinite(m.ms) && m.ms > 0 && m.ms < 36e5) { const prev = (state.times[sid] || {})[c.peer]; if (!prev || (Number.isFinite(m.score) && m.score > (prev.score || 0))) { (state.times[sid] = state.times[sid] || {})[c.peer] = Object.assign({ name, ms: Math.round(m.ms) }, SCORE(m)); broadcast({ t:'board', screen:sid, rows: state.times[sid] }); render(); } }
+  if (m.t === 'draw' && typeof m.png === 'string' && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(m.png) && m.png.length < 90000) { (state.draws[sid] = state.draws[sid] || {})[c.peer] = { name, png: m.png }; broadcast({ t:'gallery', screen:sid, rows: state.draws[sid], crown: state.crowns[sid] || '' }); showGallery(sid); }
+  if (m.t === 'gallery?') { c.send(JSON.stringify({ t:'gallery', screen:sid, rows: state.draws[sid] || {}, crown: state.crowns[sid] || '' })); }
   if (m.t === 'quiz' && Number.isFinite(m.tries)) { (state.quiz[sid] = state.quiz[sid] || {})[c.peer] = { name, tries: Math.max(1, Math.min(9, Math.round(m.tries))), at: Date.now() }; broadcast({ t:'quiz', screen:sid, rows: state.quiz[sid] }); render(); }
 }
 
@@ -134,16 +139,19 @@ function connectHost() {
     if (m.t === 'players') state.players = new Map((m.players || []).map((n, i) => ['p' + i, clean(n)]));
     if (m.t === 'board') state.times[clean(m.screen, 40)] = sane({ x: m.rows }).x || {};
     if (m.t === 'quiz') state.quiz[clean(m.screen, 40)] = sane({ x: m.rows }).x || {};
+    if (m.t === 'gallery') { const sid = clean(m.screen, 40); state.draws[sid] = saneDraws(m.rows); state.crowns[sid] = clean(m.crown); showGallery(sid); }
     render();
   });
   const lost = () => { state.status = 'reconnecting...'; render(); setTimeout(() => { if (state.role === 'guest' && (!state.host || !state.host.open)) connectHost(); }, 3000); };
   c.on('close', lost); c.on('error', lost);
 }
+function saneDraws(rows) { const out = {}; for (const [k, v] of Object.entries(rows && typeof rows === 'object' ? rows : {})) if (v && typeof v.png === 'string' && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(v.png) && v.png.length < 90000) out[clean(k, 64)] = { name: clean(v.name) || 'Guest', png: v.png }; return out; }
+function showGallery(sid) { const cur = BB.current && BB.current(); if (cur && cur.screen.id === sid && BB.mp.onGallery) BB.mp.onGallery(state.draws[sid] || {}, state.crowns[sid] || ''); }
 function sane(obj) {   /* per-screen tables of { name, ms|tries } from the host, cleaned */
   const out = {};
   for (const [sid, rows] of Object.entries(obj && typeof obj === 'object' ? obj : {})) {
     if (!rows || typeof rows !== 'object') continue;
-    out[clean(sid, 40)] = Object.fromEntries(Object.entries(rows).filter(([k, v]) => v && typeof v === 'object').map(([k, v]) => [clean(k, 64), { name: clean(v.name) || 'Guest', ms: Number.isFinite(v.ms) ? v.ms : undefined, tries: Number.isFinite(v.tries) ? v.tries : undefined, at: Number.isFinite(v.at) ? v.at : 0 }]));
+    out[clean(sid, 40)] = Object.fromEntries(Object.entries(rows).filter(([k, v]) => v && typeof v === 'object').map(([k, v]) => [clean(k, 64), Object.assign({ name: clean(v.name) || 'Guest', ms: Number.isFinite(v.ms) ? v.ms : undefined, tries: Number.isFinite(v.tries) ? v.tries : undefined, at: Number.isFinite(v.at) ? v.at : 0 }, SCORE(v))]));
   }
   return out;
 }
@@ -166,11 +174,22 @@ BB.mp.onScreen = (screen, i) => {
   if (state.role === 'guest' && screen.type === 'mini') state.miniT0 = performance.now();
   render();
 };
-BB.mp.finished = (screen) => {      /* a mini-game was won on this device */
+BB.mp.finished = (screen, extra) => {      /* a mini-game was won on this device; extra = { score, unit } for score games */
   if (!state.role || !state.miniT0) return;
-  const ms = Math.round(performance.now() - state.miniT0); state.miniT0 = 0;
-  if (state.role === 'host') { (state.times[screen.id] = state.times[screen.id] || {}).host = { name: state.name, ms }; broadcast({ t:'board', screen: screen.id, rows: state.times[screen.id] }); render(); }
-  else send({ t:'time', screen: screen.id, ms });
+  const ms = Math.round(performance.now() - state.miniT0), row = Object.assign({ name: state.name, ms }, SCORE(extra || {}));
+  if (extra && Number.isFinite(extra.score)) { /* score games may report again (fly again); keep the timer running */ } else state.miniT0 = 0;
+  if (state.role === 'host') { const prev = (state.times[screen.id] || {}).host; if (!prev || (row.score !== undefined && row.score > (prev.score || 0))) { (state.times[screen.id] = state.times[screen.id] || {}).host = row; broadcast({ t:'board', screen: screen.id, rows: state.times[screen.id] }); render(); } }
+  else send(Object.assign({ t:'time', screen: screen.id, ms }, row.score !== undefined ? { score: row.score, unit: row.unit } : {}));
+};
+BB.mp.drawing = (png) => {              /* the draw game: hand a finished sketch to the room */
+  const cur = BB.current && BB.current(); if (!cur || !state.role) return; const sid = cur.screen.id;
+  if (state.role === 'host') { (state.draws[sid] = state.draws[sid] || {}).host = { name: state.name, png }; broadcast({ t:'gallery', screen: sid, rows: state.draws[sid], crown: state.crowns[sid] || '' }); showGallery(sid); }
+  else send({ t:'draw', screen: sid, png });
+};
+BB.mp.requestGallery = () => { const cur = BB.current && BB.current(); if (!cur) return; if (state.role === 'host') showGallery(cur.screen.id); else send({ t:'gallery?', screen: cur.screen.id }); };
+BB.mp.crown = (key) => {                 /* host taps a drawing: that guest wins */
+  const cur = BB.current && BB.current(); if (!cur || state.role !== 'host') return; const sid = cur.screen.id, d = (state.draws[sid] || {})[key]; if (!d) return;
+  state.crowns[sid] = d.name; BB.Sound.cheer(); BB.Confetti.burst(160); broadcast({ t:'gallery', screen: sid, rows: state.draws[sid], crown: d.name }); showGallery(sid);
 };
 BB.mp.answered = (screen, tries) => {
   if (!state.role) return;
