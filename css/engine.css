@@ -84,11 +84,18 @@ body.closing #sound{display:none}
 
 /* ---------- Type ---------- */
 .do{
-  position:absolute; top:.5rem; left:50%; transform:translateX(-50%); z-index:2; white-space:nowrap;
-  font-size:1.05rem; font-weight:800; letter-spacing:.01em;
-  background:var(--accent); color:var(--btnText); padding:.25rem 1rem; border-radius:2rem;
-  box-shadow:0 .2rem .6rem rgba(0,0,0,.35);
+  position:absolute; top:.6rem; left:50%; transform:translateX(-50%); z-index:2; white-space:nowrap;
+  font-size:.95rem; font-weight:700; font-style:italic; letter-spacing:.01em; opacity:.85;
+  color:#fff; text-shadow:0 2px 6px rgba(0,0,0,.8);
 }
+.do::before{content:"↓ "}
+.instr{font-size:1.15rem; font-weight:800; text-align:center; max-width:60rem; text-shadow:0 2px 6px rgba(0,0,0,.8); margin:0}
+.ready{position:absolute; inset:0; z-index:5; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.55); border-radius:.8rem}
+.readycard{max-width:36rem; text-align:center; display:flex; flex-direction:column; align-items:center; gap:.6rem; padding:1.4rem 2rem}
+.readycard h3{margin:0; font-size:2rem; color:var(--accent)}
+.readycard p{font-size:1.15rem}
+.readycard .intro{font-size:1rem; opacity:.85}
+.gameactions{display:contents}
 .kicker{font-size:1rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em; opacity:.92}
 h1.giant{font-size:4.2rem; line-height:1; margin:.2rem 0 0; letter-spacing:.02em; text-shadow:0 .25rem 0 rgba(0,0,0,.45), 0 .6rem 1.4rem rgba(0,0,0,.5)}
 .sub{font-size:2rem; font-weight:900; letter-spacing:.35em; color:var(--accent); text-shadow:0 .2rem .6rem rgba(0,0,0,.6)}
@@ -235,8 +242,8 @@ p{margin:0}
 /* popcorn */
 .popfield{position:relative; height:100%; flex:1 1 auto; max-width:46rem; overflow:hidden; border-radius:.8rem; background:rgba(0,0,0,.25); touch-action:manipulation}
 .popfield .pan{position:absolute; left:50%; bottom:.2rem; transform:translateX(-50%); font-size:5rem; line-height:1; pointer-events:none}
-.kernel{position:absolute; left:0; top:0; font-size:3rem; line-height:1; cursor:pointer; user-select:none; -webkit-user-select:none; will-change:transform; padding:.2rem}
-.kernel.caught{animation:pop .25s reverse; opacity:0}
+.kernel{position:absolute; left:0; top:0; font-size:4.5rem; line-height:1; cursor:pointer; user-select:none; -webkit-user-select:none; will-change:transform; padding:.2rem; transition:opacity .18s}
+.kernel.caught{opacity:0}
 
 /* red light, green light */
 .rlwrap{position:relative; width:100%; height:100%; display:flex; flex-direction:column; justify-content:flex-end; gap:1rem; padding:1rem}
@@ -247,24 +254,35 @@ p{margin:0}
 .light[data-phase=turning]{background:#f1c40f; box-shadow:0 0 1.2rem #f1c40f}
 .light[data-phase=red]{background:#e74c3c; box-shadow:0 0 1.6rem #e74c3c}
 .track{position:relative; height:7rem; border-radius:.8rem; background:repeating-linear-gradient(90deg, rgba(255,255,255,.12) 0 2rem, transparent 2rem 4rem), rgba(0,0,0,.35)}
-.track .runner{position:absolute; left:0; bottom:.6rem; font-size:4.6rem; line-height:1; transition:none}
+.track .runner{position:absolute; left:0; bottom:.6rem; font-size:4.6rem; line-height:1; transition:none; transform:scaleX(-1)}
 .track .runner.go{animation:bob .3s ease-in-out infinite}
+.rltimer{position:absolute; left:50%; top:1.2rem; transform:translateX(-50%); display:flex; gap:1rem; align-items:baseline; font-variant-numeric:tabular-nums}
+.rltimer .best{font-size:.9rem; opacity:.8}
 .track .runner.win{animation:pop .6s}
 .track .finish{position:absolute; right:.4rem; bottom:.6rem; font-size:4.6rem; line-height:1}
-@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-.6rem)}}
+@keyframes bob{0%,100%{transform:scaleX(-1) translateY(0)}50%{transform:scaleX(-1) translateY(-.6rem)}}
 .caughtmsg{position:absolute; left:50%; top:35%; transform:translate(-50%,-50%); font-size:2.6rem; font-weight:900; color:#ff6b6b; -webkit-text-stroke:.1rem #000; opacity:0; pointer-events:none}
 .caughtmsg.show{animation:popc .7s ease-out}
 
 /* cake slice */
 .cakewrap{height:100%; flex:1 1 auto; max-width:50rem; display:flex; align-items:center; cursor:pointer; touch-action:manipulation}
-.cake{position:relative; width:100%; height:44%; border-radius:1rem; box-shadow:inset 0 -1.2rem 0 rgba(0,0,0,.25), 0 .8rem 1.6rem rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center}
-.cake .cakeemo{font-size:5rem; opacity:.5}
-.cake .knife{position:absolute; top:-3.4rem; left:0; font-size:3.4rem; line-height:1; transform:translateX(-50%) rotate(90deg); pointer-events:none}
-.cutline{position:absolute; top:0; bottom:0; width:.3rem; margin-left:-.15rem; background:#fff; box-shadow:0 0 .4rem #000; animation:pop .2s}
+.cake{position:relative; width:100%; height:62%; margin-top:3rem}
+.cake .frosting{position:absolute; left:0; right:0; top:0; height:58%; background:#f6d7e3; border-radius:1.2rem 1.2rem .4rem .4rem; box-shadow:inset 0 -.6rem 0 #e9b9cc, 0 .3rem 0 #d99bb5; overflow:hidden}
+.cake .frosting::before{content:""; position:absolute; left:0; right:0; top:0; height:1.4rem; background:radial-gradient(circle at 1rem 100%, #fff 0 .7rem, transparent .75rem) 0 0/2rem 1.4rem repeat-x}
+.cake .sprinkles{position:absolute; inset:0; background-image:radial-gradient(#e74c3c 0 .18rem, transparent .2rem), radial-gradient(#3498db 0 .18rem, transparent .2rem), radial-gradient(#f1c40f 0 .18rem, transparent .2rem), radial-gradient(#2ecc71 0 .18rem, transparent .2rem); background-size:3.1rem 2.3rem, 2.7rem 3.3rem, 3.7rem 2.9rem, 2.3rem 3.9rem; background-position:.4rem .9rem, 1.6rem 1.7rem, .9rem 2.2rem, 2.1rem .6rem; opacity:.9}
+.cake .cakeside{position:absolute; left:0; right:0; top:58%; bottom:0; background:repeating-linear-gradient(to bottom, #c98a5a 0 26%, #f3e3c3 26% 48%, #b96f45 48% 74%, #f3e3c3 74% 100%); border-radius:0 0 .8rem .8rem; box-shadow:0 .9rem 1.6rem rgba(0,0,0,.55)}
+.cake .candles{position:absolute; left:0; right:0; top:-2.6rem; height:2.6rem}
+.cake .candle{position:absolute; bottom:0; width:.55rem; height:2rem; background:repeating-linear-gradient(45deg, #fff 0 .3rem, #e74c3c .3rem .6rem); border-radius:.2rem}
+.cake .candle::after{content:""; position:absolute; left:50%; top:-.9rem; width:.7rem; height:.95rem; margin-left:-.35rem; border-radius:50% 50% 50% 50% / 60% 60% 40% 40%; background:radial-gradient(#fff6b0, #ffb300 60%, #ff6d00); animation:blink 1.2s ease-in-out infinite}
+.cake .slices{position:absolute; inset:0}
+.cake .knife{position:absolute; top:-4.2rem; left:0; font-size:3.6rem; line-height:1; transform:translateX(-50%) rotate(90deg); pointer-events:none; filter:drop-shadow(0 .3rem .4rem rgba(0,0,0,.6)); z-index:2}
+.cutline{position:absolute; top:-.4rem; bottom:-.2rem; width:.32rem; margin-left:-.16rem; background:#3b1f12; box-shadow:0 0 .3rem rgba(0,0,0,.6); animation:pop .2s; z-index:1}
+.slicebit{position:absolute; top:0; bottom:0; box-shadow:inset 0 0 0 .2rem rgba(255,255,255,.55); transition:transform .5s cubic-bezier(.3,1.4,.5,1); animation:pop .4s}
 
 /* balloon */
-.balloonfield{position:relative; height:100%; flex:1 1 auto; max-width:40rem; display:flex; align-items:center; justify-content:center}
-.balloon{font-size:4rem; line-height:1; transition:transform .05s linear; transform-origin:center 80%}
+.balloonfield{position:relative; height:100%; flex:1 1 auto; max-width:46rem; display:flex; align-items:center; justify-content:flex-start; padding-left:8%}
+.balloon{font-size:4rem; line-height:1; transition:transform .05s linear; transform-origin:left 80%; transform:scale(.6)}
+.balloonfield .hazard{position:absolute; right:6%; top:50%; transform:translateY(-50%); font-size:6rem; line-height:1}
 .balloon.gone{opacity:0}
 .balloonfield .pop{position:absolute; font-size:9rem; opacity:0; pointer-events:none}
 .balloonfield .pop.show{animation:popc .5s ease-out forwards; position:absolute; left:50%; top:50%}
@@ -294,20 +312,26 @@ p{margin:0}
 .cup .cupemo{font-size:7rem; line-height:1; position:relative; z-index:2; transition:transform .3s}
 .cup.up .cupemo{transform:translateY(-4.5rem)}
 .cup.wrong .cupemo{filter:grayscale(1)}
-.cup .under{position:absolute; bottom:.4rem; z-index:1}
+.cup .under{position:absolute; bottom:.4rem; z-index:1; visibility:hidden}
+.cup.up .under{visibility:visible}
 .tokenpic{width:4.4rem; height:4.4rem; border-radius:50%; object-fit:cover; border:.2rem solid #fff; font-size:3.4rem; display:inline-flex; align-items:center; justify-content:center; line-height:1}
 .cup .key{position:absolute; bottom:-1.4rem; font-size:.75rem; opacity:.6}
 
 /* count the crowd */
 .countfield{position:relative; height:100%; flex:1 1 auto; max-width:50rem; display:flex; flex-direction:column; align-items:center; justify-content:center}
-.flashwrap{position:absolute; inset:0}
+.flashwrap{position:absolute; inset:0; pointer-events:none}
+.countopts{position:relative; z-index:1}
 .flashwrap .cnt{position:absolute; font-size:2.6rem; line-height:1; transform:translate(-50%,-50%)}
 .countopts{width:min(30rem, 100%)}
 
 /* draw */
 .drawwrap{display:flex; align-items:center; justify-content:center; gap:2rem; width:100%; height:100%; flex-wrap:wrap}
 .drawside{display:flex; flex-direction:column; align-items:center; gap:.5rem; height:100%}
-.sketch{height:calc(100% - 3rem); aspect-ratio:1; max-width:100%; background:#1b2233; border:.3rem solid #fbf7ef; border-radius:.4rem; touch-action:none; cursor:crosshair}
+.drawside .prompt{font-size:1.3rem; font-weight:900; color:var(--accent); text-shadow:0 2px 6px #000}
+.swatches{max-width:22rem; flex-wrap:wrap; justify-content:center}
+.strip{display:flex; gap:.4rem; margin-top:.4rem}
+.strip .thumb{width:3.6rem; height:3.6rem; border:.15rem solid #fbf7ef; border-radius:.2rem}
+.sketch{height:calc(100% - 5.6rem); aspect-ratio:1; max-width:100%; background:#1b2233; border:.3rem solid #fbf7ef; border-radius:.4rem; touch-action:none; cursor:crosshair}
 .swatches{display:flex; gap:.5rem}
 .sw{width:2.2rem; height:2.2rem; border-radius:50%; border:.2rem solid rgba(255,255,255,.5); cursor:pointer; padding:0}
 .sw.on{border-color:#fff; transform:scale(1.15); box-shadow:0 0 0 .15rem #000}
@@ -320,7 +344,23 @@ p{margin:0}
 .galpic.crowned img{border-color:var(--accent); box-shadow:0 0 1rem var(--accent)}
 .galpic.crowned figcaption::before{content:"👑 "}
 
-/* photo scramble */
+/* whack — things pop up anywhere */
+.whackfield{position:relative; height:100%; flex:1 1 auto; max-width:56rem; border-radius:.8rem; background:rgba(0,0,0,.25); overflow:hidden; touch-action:manipulation}
+.popper{position:absolute; border:0; background:transparent; padding:.3rem; font-size:4.6rem; line-height:1; cursor:pointer; transform:translate(-50%,-50%) scale(.2); opacity:0; transition:transform .16s ease-out, opacity .16s; user-select:none; -webkit-user-select:none}
+.popper.up{transform:translate(-50%,-50%) scale(1); opacity:1}
+.popper.bonk{transform:translate(-50%,-50%) scale(1.2, .5); opacity:0; transition:transform .12s, opacity .12s}
+
+/* photo puzzle (jigsaw) */
+.jigwrap{display:flex; align-items:center; justify-content:center; gap:1.5rem; width:100%; height:100%}
+.pile{position:relative; flex:1 1 auto; height:100%; max-width:30rem; display:flex; flex-wrap:wrap; align-content:center; justify-content:center; gap:.4rem; padding:.5rem}
+.piece{width:4.2rem; height:4.2rem; border:.15rem solid #fbf7ef; border-radius:.2rem; box-shadow:0 .3rem .6rem rgba(0,0,0,.5); cursor:pointer; transform:rotate(var(--r, 0deg)); transition:transform .15s; touch-action:manipulation}
+.piece.sel{transform:rotate(0) scale(1.15); box-shadow:0 0 0 .25rem var(--accent), 0 .3rem .6rem rgba(0,0,0,.5); z-index:2}
+.piece.in{width:100%; height:100%; border:0; border-radius:0; box-shadow:none; transform:none; cursor:default}
+.jiggrid{display:grid; grid-template-columns:repeat(4, 1fr); grid-template-rows:repeat(4, 1fr); height:100%; aspect-ratio:1; max-width:100%; background:rgba(0,0,0,.45); border:.3rem solid #fbf7ef; gap:1px}
+.slot{background:rgba(255,255,255,.08); cursor:pointer; display:flex}
+.slot.nope{animation:shake .3s}
+.jiggrid.solved{gap:0} .jiggrid.solved .slot{background:transparent}
+/* (old sliding-tile styles) */
 .puzzle{position:relative; height:100%; aspect-ratio:1; max-width:100%; background:rgba(0,0,0,.5); border:.3rem solid #fbf7ef; touch-action:manipulation}
 .tile{position:absolute; left:0; top:0; width:33.34%; height:33.34%; background-image:var(--img); background-size:300% 300%; box-shadow:inset 0 0 0 .1rem rgba(0,0,0,.5); transition:transform .12s; cursor:pointer}
 .tile.gap{visibility:hidden}
@@ -555,6 +595,15 @@ body.closing #mp{display:none}
   .cup{ width:26vw; height:9rem } .cup .cupemo{ font-size:4.6rem }
   .drawside{ height:auto; width:100% } .sketch{ height:auto; width:min(88vw, 22rem) }
   .puzzle{ height:auto; width:min(88vw, 22rem) }
+  .jigwrap{ flex-direction:column; height:auto }
+  .pile{ height:auto; width:100%; max-width:100% } .piece{ width:3.4rem; height:3.4rem }
+  .jiggrid{ height:auto; width:min(88vw, 22rem) }
+  .whackfield{ width:100%; height:60vw; min-height:16rem; flex:0 0 auto }
+  .popper{ font-size:3.4rem }
+  .cake{ margin-top:2.6rem } .cakewrap{ height:14rem }
+  .readycard{ padding:1rem } .readycard h3{ font-size:1.5rem } .readycard p{ font-size:1rem }
+  .instr{ font-size:1rem }
+  .rltimer{ top:.4rem }
   .echowrap{ flex-direction:column; gap:1rem; height:auto }
   .pads{ gap:.7rem }
   .epad{ width:27vw; height:27vw; max-width:8rem; max-height:8rem; font-size:.8rem; border-width:.3rem }
@@ -563,9 +612,6 @@ body.closing #mp{display:none}
   .orderbox{ grid-template-columns:1fr; gap:.8rem; height:auto }
   .gaugebox{ order:-1 }
   .gaugebox svg{ width:11rem }
-  .whack{ height:auto; width:100%; aspect-ratio:1/1; gap:.5rem }
-  .hole .pop{ font-size:15vw }
-  .hole .key{ display:none }
 
   /* Badges */
   .badge svg{ width:7rem; height:7rem }

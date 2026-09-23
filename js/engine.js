@@ -20,7 +20,7 @@ const TOUCH = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
 const phoneLayout = () => window.matchMedia('(max-width: 760px), (orientation: portrait) and (max-width: 1024px)').matches;
 const PRESS = TOUCH ? 'Tap' : 'Press';
 
-let party, screens, stage, hud, cur = null, lockUntil = 0;
+let party, screens, stage, hud, cur = null, lockUntil = 0, autoStart = false;
 const state = { i:0, hi:0, earned:new Set() };
 
 /* ==================================================================
@@ -140,15 +140,18 @@ const BUILD = {
   mini: s => {
     const T = chapterOf(s).mini, m = BB.MINI[T.kind], ctx = miniCtx(s);
     const actions = m.actions ? m.actions(T) : `<button class="btn primary big" data-action="step">${esc(m.first ? m.first(T) : 'Go')}</button>`;
+    const how = m.doText(T, TOUCH);
     return `
     ${sceneFor(s, m.soft ? 'soft' : 'dim')}
     <div class="content mini">
-      <div class="do">${esc(m.doText(T, TOUCH))}</div>
       <div class="kicker">${s.last ? 'Final round' : 'Intermission'} · ${esc(T.title)}</div>
+      <p class="instr">${esc(how)}</p>
+      <div class="playfield">${m.build(T, ctx)}
+        <div class="ready"><div class="card readycard"><h3>${esc(T.title)}</h3><p>${esc(how)}</p><p class="intro">${esc(T.intro)}</p><button class="btn primary big" data-action="start">START</button></div></div>
+      </div>
       <div class="note"></div>
-      <div class="playfield">${m.build(T, ctx)}</div>
     </div>
-    <div class="actions">${actions}<button class="btn ghostbtn skip" data-action="next">Skip game →</button></div>`;
+    <div class="actions"><div class="gameactions" hidden>${actions}</div><button class="btn ghostbtn replay" data-action="replay" hidden>↺ Replay</button><button class="btn ghostbtn skip" data-action="next">Skip game →</button></div>`;
   },
 
   messages: s => `
@@ -190,21 +193,31 @@ function miniApi(el) {
     note(txt, big) { note.textContent = txt || ''; note.classList.toggle('big', !!big); },
     finish(txt, doText, extra) {
       note.textContent = txt || ''; note.classList.remove('big');
-      el.querySelector('.do').textContent = doText || `${PRESS} Continue.`;
+      const d = el.querySelector('.do'); if (d) d.textContent = doText || `${PRESS} Continue.`;
       const stepBtn = el.querySelector('[data-action="step"]');
       if (stepBtn) { stepBtn.textContent = 'Continue →'; stepBtn.dataset.action = 'next'; stepBtn.classList.add('continue'); }
-      el.querySelectorAll('.actions [data-action="next"]').forEach(b => b.hidden = false);
-      el.querySelectorAll('.actions .pad, .actions .skip').forEach(p => p.hidden = true);
+      el.querySelectorAll('.actions .continue').forEach(b => b.hidden = false);
+      el.querySelectorAll('.actions .pad, .actions .skip, .actions .runbtn').forEach(p => p.hidden = true);
       setHi(0); showOnPhone(note);
       if (BB.mp && cur) BB.mp.finished(cur.screen, extra);
     },
-    reset(txt, doText) { note.textContent = txt || ''; note.classList.remove('big'); el.querySelector('.do').textContent = doText; el.querySelectorAll('.actions [data-action="next"]').forEach(b => b.hidden = true); },
+    reset(txt, doText) { note.textContent = txt || ''; note.classList.remove('big'); const d = el.querySelector('.do'); if (d) d.textContent = doText; el.querySelectorAll('.actions .continue').forEach(b => b.hidden = true); },
   };
 }
 
 /* Per-type setup after the HTML is in the DOM */
 const INIT = {
-  mini(s, el, local) { const T = chapterOf(s).mini; local.api = miniApi(el); BB.MINI[T.kind].init(el, local, local.api, T, miniCtx(s)); },
+  mini(s, el, local) {
+    local.api = miniApi(el);
+    local.start = () => {                          /* the game only begins when the room presses START */
+      if (local.started) return; local.started = true;
+      const r = el.querySelector('.ready'); if (r) r.remove();
+      el.querySelector('.gameactions').hidden = false; el.querySelector('.replay').hidden = false;
+      const T = chapterOf(s).mini; BB.MINI[T.kind].init(el, local, local.api, T, miniCtx(s));
+      if (BB.mp) BB.mp.started();
+    };
+    if (autoStart) { autoStart = false; local.start(); }
+  },
   badge(s, el) { const e = el.querySelector('.earned'); e.hidden = false; e.querySelector('.badge').classList.add('stamp'); earn(s.chapter); BB.Sound.fanfare(); BB.Confetti.burst(120); },
   messages(s, el, local) { local.n = 0; },
   closing() { BB.Confetti.burst(260); BB.Confetti.ambient(true); },
@@ -257,12 +270,15 @@ const ACT = {
   },
   mini(action, btn, s, el, local) {
     const T = chapterOf(s).mini, m = BB.MINI[T.kind];
+    if (action === 'start') return local.start();
+    if (action === 'replay') { autoStart = true; return go(state.i); }
+    if (!local.started) return;
     if (action === 'step' && m.step) {
       const r = m.step(el, local, T);
       const note = el.querySelector('.note');
       if (r.note !== undefined) note.textContent = r.note;
       note.classList.toggle('big', !!r.bigNote);
-      if (r.done) { btn.textContent = 'Continue →'; btn.dataset.action = 'next'; btn.classList.add('continue'); el.querySelector('.do').textContent = `${PRESS} Continue.`; el.querySelectorAll('.actions .skip').forEach(b => b.hidden = true); if (BB.mp) BB.mp.finished(s); }
+      if (r.done) { btn.textContent = 'Continue →'; btn.dataset.action = 'next'; btn.classList.add('continue'); el.querySelectorAll('.actions .skip').forEach(b => b.hidden = true); if (BB.mp) BB.mp.finished(s); }
       else if (r.label) btn.textContent = r.label;
       return;
     }
@@ -389,6 +405,7 @@ function wire() {
     if (k === 'r' || k === 'R') { if (!(BB.mp && BB.mp.following)) restart(); return; }
     if (k === 's' || k === 'S') { toggleSound(); return; }
     if (performance.now() < lockUntil) { e.preventDefault(); return; }
+    if (cur.screen.type === 'mini' && !cur.local.started && (k === 'Enter' || k === ' ')) { e.preventDefault(); cur.local.start(); return; }
     if (cur.local.onKey && cur.local.onKey(k)) { e.preventDefault(); BB.Sound.unlock(); return; }
     if (/^[1-9]$/.test(k)) { const b = [...cur.el.querySelectorAll('.opt')][+k - 1]; if (b && !b.disabled && b.offsetParent !== null) b.click(); return; }
     const cols = optButtons().length === 4 ? 2 : 1;                 /* 4 options sit in a 2x2 grid */

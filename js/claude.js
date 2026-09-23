@@ -39,7 +39,7 @@ const PARTY_SCHEMA = O({
     choice: O({ question:S(), options:A(O({ label:S(), reaction:S() })) }),
     trivia: A(O({ question:S(), options:A(S()), answer:{ type:'integer' }, reaction:S() })),
     photos: A(O({ id:S(), caption:S() })),
-    mini: O({ kind:S({ enum:['match', 'echo', 'order', 'whack', 'brawl', 'pin', 'clock', 'balance', 'popcorn', 'redlight', 'slice', 'balloon', 'pinata', 'missing', 'shell', 'count', 'draw', 'scramble', 'flappy'] }), title:S(), noun:S(), intro:S(), items:A(S()), emoji:A(S()), lines:A(S()), shout:S(), label:S(), win:S(), photo:S(), photoCaption:S() }),
+    mini: O({ kind:S({ enum:['match', 'echo', 'order', 'whack', 'brawl', 'pin', 'clock', 'balance', 'popcorn', 'redlight', 'slice', 'balloon', 'missing', 'shell', 'count', 'draw', 'scramble', 'flappy'] }), title:S(), noun:S(), intro:S(), items:A(S()), emoji:A(S()), lines:A(S()), shout:S(), label:S(), win:S(), photo:S(), photoCaption:S() }),
   })),
   finale: O({ heading:S(), lines:A(S()), final:S(), button:S(), toast:S() }),
   closing: O({ title:S(), sub:S(), photo:S() }),

@@ -146,7 +146,7 @@ function connectHost() {
   c.on('close', lost); c.on('error', lost);
 }
 function saneDraws(rows) { const out = {}; for (const [k, v] of Object.entries(rows && typeof rows === 'object' ? rows : {})) if (v && typeof v.png === 'string' && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(v.png) && v.png.length < 90000) out[clean(k, 64)] = { name: clean(v.name) || 'Guest', png: v.png }; return out; }
-function showGallery(sid) { const cur = BB.current && BB.current(); if (cur && cur.screen.id === sid && BB.mp.onGallery) BB.mp.onGallery(state.draws[sid] || {}, state.crowns[sid] || ''); }
+function showGallery(sid) { const cur = BB.current && BB.current(); if (cur && sid.startsWith(cur.screen.id) && BB.mp.onGallery) BB.mp.onGallery(state.draws[sid] || {}, state.crowns[sid] || '', sid); }
 function sane(obj) {   /* per-screen tables of { name, ms|tries } from the host, cleaned */
   const out = {};
   for (const [sid, rows] of Object.entries(obj && typeof obj === 'object' ? obj : {})) {
@@ -174,6 +174,7 @@ BB.mp.onScreen = (screen, i) => {
   if (state.role === 'guest' && screen.type === 'mini') state.miniT0 = performance.now();
   render();
 };
+BB.mp.started = () => { if (state.role) state.miniT0 = performance.now(); };   /* the clock starts at START, not at the page turn */
 BB.mp.finished = (screen, extra) => {      /* a mini-game was won on this device; extra = { score, unit } for score games */
   if (!state.role || !state.miniT0) return;
   const ms = Math.round(performance.now() - state.miniT0), row = Object.assign({ name: state.name, ms }, SCORE(extra || {}));
@@ -181,14 +182,14 @@ BB.mp.finished = (screen, extra) => {      /* a mini-game was won on this device
   if (state.role === 'host') { const prev = (state.times[screen.id] || {}).host; if (!prev || (row.score !== undefined && row.score > (prev.score || 0))) { (state.times[screen.id] = state.times[screen.id] || {}).host = row; broadcast({ t:'board', screen: screen.id, rows: state.times[screen.id] }); render(); } }
   else send(Object.assign({ t:'time', screen: screen.id, ms }, row.score !== undefined ? { score: row.score, unit: row.unit } : {}));
 };
-BB.mp.drawing = (png) => {              /* the draw game: hand a finished sketch to the room */
-  const cur = BB.current && BB.current(); if (!cur || !state.role) return; const sid = cur.screen.id;
+BB.mp.drawing = (png, round) => {       /* the draw game: hand a finished sketch to the room (one gallery per round) */
+  const cur = BB.current && BB.current(); if (!cur || !state.role) return; const sid = cur.screen.id + (round ? '-r' + round : '');
   if (state.role === 'host') { (state.draws[sid] = state.draws[sid] || {}).host = { name: state.name, png }; broadcast({ t:'gallery', screen: sid, rows: state.draws[sid], crown: state.crowns[sid] || '' }); showGallery(sid); }
   else send({ t:'draw', screen: sid, png });
 };
-BB.mp.requestGallery = () => { const cur = BB.current && BB.current(); if (!cur) return; if (state.role === 'host') showGallery(cur.screen.id); else send({ t:'gallery?', screen: cur.screen.id }); };
-BB.mp.crown = (key) => {                 /* host taps a drawing: that guest wins */
-  const cur = BB.current && BB.current(); if (!cur || state.role !== 'host') return; const sid = cur.screen.id, d = (state.draws[sid] || {})[key]; if (!d) return;
+BB.mp.requestGallery = (round) => { const cur = BB.current && BB.current(); if (!cur) return; const sid = cur.screen.id + (round ? '-r' + round : ''); if (state.role === 'host') showGallery(sid); else send({ t:'gallery?', screen: sid }); };
+BB.mp.crown = (key, round) => {          /* host taps a drawing: that guest wins */
+  const cur = BB.current && BB.current(); if (!cur || state.role !== 'host') return; const sid = cur.screen.id + (round ? '-r' + round : ''), d = (state.draws[sid] || {})[key]; if (!d) return;
   state.crowns[sid] = d.name; BB.Sound.cheer(); BB.Confetti.burst(160); broadcast({ t:'gallery', screen: sid, rows: state.draws[sid], crown: d.name }); showGallery(sid);
 };
 BB.mp.answered = (screen, tries) => {

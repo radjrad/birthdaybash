@@ -49,7 +49,7 @@ function palette(raw, fallback) {
   return p;
 }
 
-const MINI_NEEDS = { match:{ items:8, emoji:8 }, echo:{ items:3, emoji:3, lines:3 }, order:{ items:5, lines:5 }, whack:{ items:2, emoji:2, lines:2 }, brawl:{ items:6, emoji:2, lines:2 }, pin:{ emoji:1, lines:4 }, clock:{ items:3, lines:3 }, balance:{ emoji:6, lines:3 }, popcorn:{ emoji:2, lines:2 }, redlight:{ items:1, emoji:3, lines:2 }, slice:{ emoji:1, lines:2 }, balloon:{ emoji:1, lines:2 }, pinata:{ emoji:1, items:6, lines:2 }, missing:{ items:8, emoji:8, lines:2 }, shell:{ emoji:2, lines:2 }, count:{ emoji:1, lines:2 }, draw:{ lines:2 }, scramble:{ lines:1 }, flappy:{ emoji:2, items:1, lines:2 } };
+const MINI_NEEDS = { match:{ items:8, emoji:8 }, echo:{ items:3, emoji:3, lines:3 }, order:{ items:5, lines:5 }, whack:{ items:2, emoji:2, lines:2 }, brawl:{ items:6, emoji:2, lines:2 }, pin:{ emoji:1, lines:4 }, clock:{ items:3, lines:3 }, balance:{ emoji:6, lines:3 }, popcorn:{ emoji:1, lines:2 }, redlight:{ items:1, emoji:3, lines:2 }, slice:{ emoji:1, lines:2 }, balloon:{ emoji:2, lines:2 }, missing:{ items:16, emoji:16, lines:2 }, shell:{ emoji:2, lines:2 }, count:{ emoji:1, lines:2 }, draw:{ items:3, lines:2 }, scramble:{ lines:1 }, flappy:{ emoji:2, items:1, lines:2 } };
 const NEEDS_PHOTO = new Set(['pin', 'scramble']);
 function mini(raw, ctx, hasPhoto, used) {
   raw = raw && typeof raw === 'object' ? raw : {};

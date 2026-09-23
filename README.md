@@ -92,34 +92,34 @@ Everything Claude returns is treated as untrusted: text is escaped, SVG goes
 through an allow-list sanitizer (`BB.sanitizeSVG` in `js/scenes.js`), and
 anything missing or malformed is repaired by `BB.normalize` in `js/party.js`.
 
-## The nineteen mini-games
+## The eighteen mini-games
 
 The mechanics never change. A party only supplies a skin with the same fields
 for every game: `kind, title, noun, intro, items[], emoji[], lines[], shout, label, win, photo`.
 What each field means per game is in `MINI_CATALOG` in `js/minigames.js` (that
-same text is what Claude reads). Nobody can lose any of them; you can only be
-slow. Timed games rank the party leaderboard by time, score games by score.
+same text is what Claude reads). Every game opens with an instructions card and
+a START button, and has Replay and Skip. Nobody can lose any of them; you can
+only be slow. Timed games rank the party leaderboard by time, score games by score.
 
 | kind | Game | How it plays |
 |------|------|--------------|
 | `match` | Memory Match | 8 pairs against the clock; best time saved |
 | `echo` | Repeat After Me | three pads light up, play it back; three rounds |
 | `order` | Right Order | five steps, one order, no hints; a wrong press resets |
-| `whack` | Whack-a-Thing | bonk ten of the right thing, leave the decoys |
+| `whack` | Whack-a-Thing | things pop up anywhere on the field; bonk ten of the right one, leave the decoys |
 | `brawl` | Boss Fight | block, dodge, punch when the guard drops; three rounds; their face on a drawn body, Claude picks the boss body (blob, robot, box, cloud, beast) |
 | `pin` | Pin the Thing | the thing circles their photo, drop it on the head; three tries, scored |
 | `clock` | Stop the Clock | stop the needle in the zone; three rounds, the zone shrinks |
 | `balance` | Balance the Tray | left/right taps keep a growing stack up; ten seconds a round |
 | `popcorn` | Popcorn | catch twenty things before they land, faster and faster |
-| `redlight` | Red Light, Green Light | hold to run, let go when the lookout turns |
+| `redlight` | Red Light, Green Light | hold the field to run, let go when the lookout turns; timed, best time saved |
 | `slice` | Cake Slice | tap the sweeping knife to cut equal slices; scored on evenness |
-| `balloon` | Inflate the Balloon | hold to inflate, release before the secret pop point |
-| `pinata` | Shake the Piñata | tap the swinging piñata; fifteen hits, things fly out |
-| `missing` | Who's Missing? | eight shown, lights out, one gone; six rounds |
+| `balloon` | Inflate the Balloon | hold to inflate toward the candles, release before it touches |
+| `missing` | Who's Missing? | eight of sixteen shown, lights out, one gone; six rounds, new board each time |
 | `shell` | Shell Game | their face under a cup, cups shuffle; three rounds |
 | `count` | Count the Crowd | a one-second flash, how many? five rounds |
-| `draw` | Draw the Birthday Person | twenty seconds to draw them; in party mode every drawing lands on the host screen and the host crowns a winner |
-| `scramble` | Photo Scramble | a photo of them in nine sliding tiles |
+| `draw` | Draw It | three twenty-second rounds (the cake, the person, their favorite thing); in party mode every drawing lands on the host screen and the host crowns a winner per round |
+| `scramble` | Photo Puzzle | a photo of them in sixteen scattered pieces; tap a piece, then its spot |
 | `flappy` | Flappy Them | their face flaps through the gaps; fly again as often as you like |
 
 Try any of them with its stock skin: `play.html?party=demo&mini=brawl`.
