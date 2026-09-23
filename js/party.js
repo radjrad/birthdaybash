@@ -35,6 +35,8 @@ BB.PALETTES = [
   { bg:'#0f2f31', bg2:'#2f7f7a', accent:'#f2b134', accent2:'#c62828', btn:'#f2b134', btnText:'#1a1405' },
   { bg:'#2b2b2b', bg2:'#5a5a66', accent:'#ff6b6b', accent2:'#97233f', btn:'#ff6b6b', btnText:'#2b0808' },
 ];
+/* a stand-in face for photo games when a party has no photos (the demo, or a show built without any) */
+BB.PLACEHOLDER_FACE = 'data:image/svg+xml;base64,' + btoa(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800"><rect width="600" height="800" fill="#3b4a6b"/><circle cx="300" cy="270" r="150" fill="#f1c27d"/><path d="M150 260 q150 -190 300 0 q-20 -70 -150 -80 q-130 10 -150 80z" fill="#5a3a1e"/><circle cx="250" cy="260" r="16" fill="#222"/><circle cx="350" cy="260" r="16" fill="#222"/><path d="M240 330 q60 50 120 0" stroke="#222" stroke-width="12" fill="none" stroke-linecap="round"/><path d="M120 800 v-200 q0 -120 180 -120 q180 0 180 120 v200z" fill="#c0392b"/><text x="300" y="720" text-anchor="middle" font-size="60" font-weight="900" fill="#fff" font-family="sans-serif">YOU</text></svg>`);
 BB.TITLE_PALETTE = { bg:'#0b1626', bg2:'#22304d', accent:'#ffd98a', accent2:'#3b4a6b', btn:'#ffd98a', btnText:'#2b1d0e' };
 
 function palette(raw, fallback) {
@@ -56,7 +58,7 @@ function mini(raw, ctx, hasPhoto, used) {
   let kind = BB.MINI_KINDS.includes(raw.kind) ? raw.kind : null;
   if (!kind) kind = BB.MINI_KINDS.find(k => !used.has(k) && !NEEDS_PHOTO.has(k)) || 'match';
   let photo = hasPhoto(raw.photo) ? raw.photo : null;
-  if (NEEDS_PHOTO.has(kind) && !photo) { photo = ctx.heroPhoto || ctx.anyPhoto; if (!photo) { kind = BB.MINI_KINDS.find(k => !used.has(k) && !NEEDS_PHOTO.has(k)) || 'whack'; raw = {}; } }
+  if (NEEDS_PHOTO.has(kind) && !photo) photo = ctx.heroPhoto || ctx.anyPhoto || ctx.placeholder();
   used.add(kind);
   const D = BB.miniDefaults(kind, ctx), need = MINI_NEEDS[kind] || {}, T = { kind, photo };
   for (const k of ['title', 'noun', 'intro', 'shout', 'label', 'win']) T[k] = str(raw[k], D[k]);
@@ -112,7 +114,7 @@ BB.normalize = function (raw) {
   party.palette = palette(raw.palette, BB.TITLE_PALETTE);
   party.wrongText = str(raw.wrongText, isms[0] ? `"${isms[0]}" Wrong. The room says try again.` : 'Wrong. The room says try again.');
 
-  const ctx = { name, ism: isms[0] || '', anyPhoto: ids[0] || null, heroPhoto: hasPhoto(raw.heroPhoto) ? raw.heroPhoto : null };
+  const ctx = { name, ism: isms[0] || '', anyPhoto: ids[0] || null, heroPhoto: hasPhoto(raw.heroPhoto) ? raw.heroPhoto : null, placeholder() { photos._face = BB.PLACEHOLDER_FACE; return '_face'; } };
   party.chapters = chaptersRaw.map((c, i) => {
     const p = palette(c.palette, BB.PALETTES[i % BB.PALETTES.length]);
     const a = c.arrival || {}, ch = c.choice || {};
@@ -155,7 +157,7 @@ BB.normalize = function (raw) {
   party.chapters.forEach(c => { if (!c.arrival.photo && spare.length) c.arrival.photo = spare.shift(); });
   let k = 0; while (spare.length && party.chapters.some(c => c.photos.length < 3)) { const c = party.chapters[k++ % party.chapters.length]; if (c.photos.length < 3) c.photos.push({ id:spare.shift(), caption:'' }); }
   party.finale.photos = [...new Set(party.chapters.flatMap(c => [c.arrival.photo, ...c.photos.map(p => p.id)]).filter(Boolean))].slice(0, 4);
-  party.heroPhoto = hasPhoto(raw.heroPhoto) ? raw.heroPhoto : party.title.photo || party.closing.photo || null;
+  party.heroPhoto = hasPhoto(raw.heroPhoto) ? raw.heroPhoto : party.title.photo || party.closing.photo || (party.chapters.some(c => c.mini && c.mini.photo === '_face') ? '_face' : null);
   return party;
 };
 

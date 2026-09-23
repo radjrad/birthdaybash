@@ -254,7 +254,10 @@ p{margin:0}
 .light[data-phase=turning]{background:#f1c40f; box-shadow:0 0 1.2rem #f1c40f}
 .light[data-phase=red]{background:#e74c3c; box-shadow:0 0 1.6rem #e74c3c}
 .track{position:relative; height:7rem; border-radius:.8rem; background:repeating-linear-gradient(90deg, rgba(255,255,255,.12) 0 2rem, transparent 2rem 4rem), rgba(0,0,0,.35)}
-.track .runner{position:absolute; left:0; bottom:.6rem; font-size:4.6rem; line-height:1; transition:none; transform:scaleX(-1)}
+.track .runner{position:absolute; left:0; bottom:.6rem; font-size:4.6rem; line-height:1; transition:none; transform:scaleX(-1); width:4.6rem; height:5.6rem}
+.track .runner .legs{position:absolute; left:0; bottom:0; font-size:4.6rem; line-height:1}
+.track .runner .runface{position:absolute; left:50%; top:-.2rem; width:2.9rem; height:2.9rem; border-radius:50%; object-fit:cover; border:.18rem solid #fff; transform:translateX(-50%) scaleX(-1); z-index:1; background:#222}
+.track .runner .solo{position:absolute; left:0; bottom:0}
 .track .runner.go{animation:bob .3s ease-in-out infinite}
 .rltimer{position:absolute; left:50%; top:1.2rem; transform:translateX(-50%); display:flex; gap:1rem; align-items:baseline; font-variant-numeric:tabular-nums}
 .rltimer .best{font-size:.9rem; opacity:.8}
@@ -281,7 +284,7 @@ p{margin:0}
 
 /* balloon */
 .balloonfield{position:relative; height:100%; flex:1 1 auto; max-width:46rem; display:flex; align-items:center; justify-content:flex-start; padding-left:8%}
-.balloon{font-size:4rem; line-height:1; transition:transform .05s linear; transform-origin:left 80%; transform:scale(.6)}
+.balloon{font-size:4rem; line-height:1; transition:transform .05s linear; transform-origin:left center; transform:scale(.6)}
 .balloonfield .hazard{position:absolute; right:6%; top:50%; transform:translateY(-50%); font-size:6rem; line-height:1}
 .balloon.gone{opacity:0}
 .balloonfield .pop{position:absolute; font-size:9rem; opacity:0; pointer-events:none}
@@ -315,7 +318,7 @@ p{margin:0}
 .cup .under{position:absolute; bottom:.4rem; z-index:1; visibility:hidden}
 .cup.up .under{visibility:visible}
 .tokenpic{width:4.4rem; height:4.4rem; border-radius:50%; object-fit:cover; border:.2rem solid #fff; font-size:3.4rem; display:inline-flex; align-items:center; justify-content:center; line-height:1}
-.cup .key{position:absolute; bottom:-1.4rem; font-size:.75rem; opacity:.6}
+.cup .key{display:none}
 
 /* count the crowd */
 .countfield{position:relative; height:100%; flex:1 1 auto; max-width:50rem; display:flex; flex-direction:column; align-items:center; justify-content:center}

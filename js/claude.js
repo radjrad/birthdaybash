@@ -75,7 +75,7 @@ closing: title (like "Happy 37th, Shannon."), sub (one line, signed from the hos
 Photos: only use ids from the host's list, each at most once across title / arrival / chapter photos / closing (a mini-game may reuse one). Use "" where there is no photo. If you can see the photos, write captions about what is actually in them and place them in the chapter they fit; do not name people other than the birthday person unless the host's note names them.
 
 MINI-GAMES
-The mechanics are fixed; you only write the skin. Every skin has the same fields: kind, title (the game's name for this party, like "Beer Pong at the DU House"), noun, intro (one line shown before play), items[], emoji[], lines[], shout, label, win, photo, photoCaption. Use "" or [] for fields a game does not use. Nobody can lose any of these games, so lines about failure are about comic failure on the way to winning.
+The mechanics are fixed; you only write the skin. Every skin has the same fields: kind, title (the game's name for this party, like "Beer Pong at the DU House"), noun, intro (ONE short flavor line for the start card; the engine already explains the controls, so never restate how to play), items[], emoji[], lines[], shout, label, win, photo, photoCaption. Use "" or [] for fields a game does not use. Nobody can lose any of these games, so lines about failure are about comic failure on the way to winning.
 ${BB.MINI_CATALOG.map(m => `- ${m.kind} (${m.name}): ${m.blurb} ${m.spec}`).join('\n')}
 For echo, photo + photoCaption is an optional snapshot that pops up on the win. Prefer a mix of reflex, memory and social games across the show; draw is best when guests play on phones.
 

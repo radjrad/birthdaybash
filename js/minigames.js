@@ -78,7 +78,7 @@ BB.MINI_CATALOG = [
     spec:'noun = the group ("the Damn Fools", "the fridge"). items = exactly 16 names (max 12 chars); each round shows 8 of them. emoji = 16 emoji, one per name, all different. lines[0] = right, lines[1] = wrong. win = closing line.' },
   { kind:'shell', name:'Shell Game', blurb:'Their face hides under one of three cups; the cups shuffle. Where did they go? Three rounds, faster.',
     spec:'noun = the cups ("coffee cups", "Solo cups", "hard hats"). emoji[0] = the cup as one emoji, emoji[1] = what hides under it if there is no photo. lines[0] = found, lines[1] = wrong cup. win = closing line.' },
-  { kind:'count', name:'Count the Crowd', blurb:'A one-second flash of a crowd, then: how many? Five rounds.',
+  { kind:'count', name:'Count the Crowd', blurb:'A flash of a crowd, then: how many? Three rounds: one second, two seconds, three seconds, and the crowd grows.',
     spec:'noun = what is being counted ("beer cans on the shelf", "cousins at Thanksgiving"). emoji[0] = the thing counted. lines[0] = right, lines[1] = wrong. win = closing line.' },
   { kind:'draw', name:'Draw It', blurb:'Three rounds of twenty-second drawings: the cake, the birthday person, their favorite thing. In party mode every drawing lands on the TV and the host crowns a winner.',
     spec:'items = exactly 3 drawing prompts, in order: round 1 the birthday cake, round 2 the birthday person, round 3 their favorite thing, each specific to them (max 40 chars, e.g. "Draw Sam\'s famous risotto"). lines[0] = shown while drawing, lines[1] = shown when time is up. win = closing line.' },
@@ -105,9 +105,9 @@ BB.miniDefaults = function (kind, c) {
     redlight: { title:'Red Light, Green Light', noun:'the finish', intro:'Hold to run. Let go the instant the lookout turns around.', items:['THE LOOKOUT'], emoji:['🏃', '👀', '🏁'], lines:['CAUGHT. Back to the start.', 'Busted. Walk of shame.', 'Seen. Every time.'], win:`Made it to the finish. ${n} has been sneaking past people for years.` },
     slice: { title:'Cake Slice', noun:'the birthday cake', intro:'The knife sweeps. Tap to cut. Every slice should be the same size.', emoji:['🎂'], label:'FOR 5 GUESTS', lines:['Even. Nobody complains.', 'That slice is a lot bigger than the others.'], win:`{score}% even. ${n} takes the big one anyway.` },
     balloon: { title:'Inflate the Balloon', noun:'the balloon', intro:'Hold to inflate. The bigger the better, but if it touches the candles it pops. Let go first.', emoji:['🎈', '🎂'], lines:['POP. It touched the candles.', 'Safe. Could have gone bigger?'], win:`Best balloon: {score}%. ${n} always pushes it a little too far.` },
-    missing: { title:"Who's Missing?", noun:'the party', intro:'Memorize the eight. The lights go out. One is gone: which?', items:['Cake', 'Candles', 'Balloons', 'Presents', 'Hat', 'Confetti', 'Card', 'Karaoke', 'Pizza', 'Piñata', 'Sparkler', 'Cocktail', 'Camera', 'Speaker', 'Streamers', 'Cupcake'], emoji:['🎂', '🕯️', '🎈', '🎁', '🥳', '🎊', '💌', '🎤', '🍕', '🪅', '🎇', '🍹', '📷', '🔊', '🎀', '🧁'], lines:['Right. Sharp eyes.', 'Wrong one. Look again.'], win:`Six rounds, nothing gets past you. Unlike ${n}, who once lost a car.` },
+    missing: { title:"Who's Missing?", noun:'the party', intro:'Six rounds. It gets faster.', items:['Cake', 'Candles', 'Balloons', 'Presents', 'Hat', 'Confetti', 'Card', 'Karaoke', 'Pizza', 'Piñata', 'Sparkler', 'Cocktail', 'Camera', 'Speaker', 'Streamers', 'Cupcake'], emoji:['🎂', '🕯️', '🎈', '🎁', '🥳', '🎊', '💌', '🎤', '🍕', '🪅', '🎇', '🍹', '📷', '🔊', '🎀', '🧁'], lines:['Right. Sharp eyes.', 'Wrong one. Look again.'], win:`Six rounds, nothing gets past you. Unlike ${n}, who once lost a car.` },
     shell: { title:'Shell Game', noun:'cups', intro:'Watch the cup. The cups move. Where are they now?', emoji:['🥤', '🙂'], lines:['Found them!', 'Wrong cup.'], win:`Three for three. ${n} cannot hide from you.` },
-    count: { title:'Count the Crowd', noun:'people', intro:'You get one second. How many?', emoji:['🧑'], lines:['Exactly right.', 'Off by a bit. Count again.'], win:`Five rounds counted. ${n} still cannot count drinks.` },
+    count: { title:'Count the Crowd', noun:'people', intro:'The crowd gets bigger, and you get a little longer to look.', emoji:['🧑'], lines:['Exactly right.', 'Off by a bit. Count again.'], win:`Five rounds counted. ${n} still cannot count drinks.` },
     draw: { title:'Draw It', noun:'portrait', intro:'Three rounds, twenty seconds each. Nobody is good at this.', items:['Draw the birthday cake', `Draw ${n}`, `Draw ${n}'s favorite thing`], lines:['Draw!', 'Time. Pencils down.'], win:`Three masterpieces. ${n} will frame them, or say they will.` },
     scramble: { title:'Photo Puzzle', noun:'the photo', intro:'Tap a piece, then tap where it goes. Sixteen pieces.', lines:['Tap a piece, then its spot on the grid.'], win:`Solved in {secs} seconds. ${n} has never once been this together.` },
     flappy: { title:'Flappy Them', noun:'flight', intro:'Tap to flap. Get through as many gaps as you can.', emoji:['🐦', '🚧'], items:['obstacles'], lines:['Crashed. Flew into it face first.', 'Down. Classic landing.', 'Splat.'], win:`{score} gaps. ${n} has flown further after a birthday dinner.` },
@@ -568,8 +568,8 @@ BB.MINI = {
     doText: (T, touch) => `${touch ? 'Hold anywhere on the field' : 'Hold the field or Space'} to run. Let go the instant ${T.items[0]} turns around, or it is back to the start.`,
     actions: () => `<button class="btn big runbtn" type="button">HOLD TO RUN</button>${CONTINUE}`,
     key: (ctx) => `bb-${ctx.partyId}-redlight-best`,
-    build(T) {
-      return `<div class="rlwrap"><div class="lookout emo" data-face="away">${esc(T.emoji[1] || '👀')}</div><div class="light"></div><div class="rltimer"><span class="stat clockv">0.0s</span><span class="best"></span></div><div class="track"><div class="finish emo">${esc(T.emoji[2] || '🏁')}</div><div class="runner emo">${esc(T.emoji[0] || '🏃')}</div></div><div class="caughtmsg"></div></div>`;
+    build(T, ctx) {
+      return `<div class="rlwrap"><div class="lookout emo" data-face="away">${esc(T.emoji[1] || '👀')}</div><div class="light"></div><div class="rltimer"><span class="stat clockv">0.0s</span><span class="best"></span></div><div class="track"><div class="finish emo">${esc(T.emoji[2] || '🏁')}</div><div class="runner">${ctx.heroPhoto ? `<img class="runface" src="${esc(ctx.src(ctx.heroPhoto))}" alt=""><span class="legs emo">🏃</span>` : `<span class="emo solo">${esc(T.emoji[0] || '🏃')}</span>`}</div></div><div class="caughtmsg"></div></div>`;
     },
     init(el, local, api, T, ctx) {
       Object.assign(local, { pos:0, held:false, phase:'green', t:rnd(1.4, 3), caught:0, elapsed:0 });
@@ -643,11 +643,13 @@ BB.MINI = {
     init(el, local, api, T) {
       Object.assign(local, { round:0, size:0, held:false, best:0, busy:false });
       const b = el.querySelector('.balloon'), sizeEl = el.querySelector('.size');
-      const start = () => { local.size = 0; local.thr = rnd(84, 97); local.busy = false; b.classList.remove('gone'); el.querySelector('.pop').classList.remove('show'); el.querySelector('.round').textContent = `${local.round + 1} of 3`; sizeEl.textContent = '—'; b.style.transform = 'scale(.6)'; };
+      const hz = el.querySelector('.hazard'), field = el.querySelector('.balloonfield');
+      const start = () => { local.size = 0; local.busy = false; b.classList.remove('gone'); el.querySelector('.pop').classList.remove('show'); el.querySelector('.round').textContent = `${local.round + 1} of 3`; sizeEl.textContent = '—'; b.style.transform = 'scale(.6)'; hz.style.right = rnd(4, 22).toFixed(0) + '%'; local.startRight = null; };
+      const edges = () => { const br = b.getBoundingClientRect(), hr = hz.getBoundingClientRect(); return { right: br.right, cake: hr.left }; };
       start(); api.note(T.intro);
       const settle = (popped) => {
         local.busy = true; local.held = false;
-        const got = popped ? 0 : Math.round(local.size); local.best = Math.max(local.best, got);
+        const e = edges(), got = popped ? 0 : Math.round(clamp((e.right - local.startRight) / (e.cake - local.startRight) * 100, 0, 100)); local.best = Math.max(local.best, got);
         sizeEl.textContent = popped ? 'POP' : got + '%'; el.querySelector('.best').textContent = `best ${local.best}%`;
         if (popped) { b.classList.add('gone'); el.querySelector('.pop').classList.add('show'); Sound().buzzer(); api.note(T.lines[0], true); } else { Sound().chime(); api.note(`${T.lines[1]} ${got}%.`); }
         local.round++;
@@ -656,8 +658,8 @@ BB.MINI = {
       };
       loop(local, (dt) => {
         if (local.busy) return;
-        if (local.held) { local.size += 30 * dt; if (local.size >= local.thr) { settle(true); return; } }
-        b.style.transform = `scale(${(.6 + local.size / 100 * 3.4).toFixed(2)})`;   /* at ~90% it reaches the candles */
+        if (local.startRight === null) local.startRight = edges().right;
+        if (local.held) { local.size += 24 * dt; b.style.transform = `scale(${(.6 + local.size / 100 * 4.2).toFixed(2)})`; if (edges().right >= edges().cake) { settle(true); return; } }   /* touching the candles pops it */
       });
       hold(el, local, () => { if (!local.busy) { local.held = true; local.wasHeld = true; } }, () => { if (local.held && !local.busy) settle(false); local.held = false; }, '.runbtn');
     },
@@ -665,20 +667,19 @@ BB.MINI = {
 
   /* ---- missing: eight things, lights out, one is gone; six rounds ---- */
   missing: {
-    doText: () => 'Memorize the eight. When the lights come back, tap the one that is missing.',
+    doText: (T, touch) => `Memorize the eight. The lights go out, one disappears: ${touch ? 'tap' : 'click'} which.`,
     actions: () => CONTINUE,
     build(T) { return `<div class="sidewrap"><div class="memgrid"></div>
       <div class="side"><div class="kicker">Round</div><div class="stat round">1 of 6</div><div class="choices"></div></div></div>`; },
     init(el, local, api, T) {
       const grid = el.querySelector('.memgrid'), choices = el.querySelector('.choices'); const later = timers(local);
       Object.assign(local, { round:0, phase:'show' });
-      api.note(T.intro);
       const pool = [...Array(Math.min(T.items.length, T.emoji.length)).keys()];
       const show = () => {
         local.phase = 'show'; choices.innerHTML = ''; grid.classList.remove('dark');
         local.board = shuffle(pool).slice(0, 8);            /* eight from the bigger set, new every round */
         grid.innerHTML = local.board.map(i => `<div class="memcell" data-i="${i}"><span class="emo">${esc(T.emoji[i] || '')}</span><span class="nm">${esc(T.items[i])}</span></div>`).join('');
-        el.querySelector('.round').textContent = `${local.round + 1} of 6`;
+        el.querySelector('.round').textContent = `${local.round + 1} of 6`; api.note('Memorize...');
         later(() => { grid.classList.add('dark'); local.phase = 'dark'; }, Math.max(1100, 2400 - local.round * 260));
         later(() => {
           local.gone = pick(local.board); grid.querySelector(`.memcell[data-i="${local.gone}"]`).hidden = true; grid.classList.remove('dark'); local.phase = 'ask';
@@ -705,7 +706,7 @@ BB.MINI = {
   shell: {
     doText: (T, touch) => `Watch which ${T.noun.replace(/s$/, '')} hides them, follow the shuffle, then ${touch ? 'tap' : 'click or press 1-3 on'} the right one.`,
     actions: () => CONTINUE,
-    build(T, ctx) { return `<div class="sidewrap"><div class="shellfield">${[0, 1, 2].map(i => `<div class="cup" data-i="${i}"><span class="emo cupemo">${esc(T.emoji[0] || '🥤')}</span><div class="under">${faceHTML(ctx, T.emoji[1] || '🙂', 'tokenpic')}</div><span class="key">${i + 1}</span></div>`).join('')}</div>
+    build(T, ctx) { return `<div class="sidewrap"><div class="shellfield">${[0, 1, 2].map(i => `<div class="cup" data-i="${i}"><span class="emo cupemo">${esc(T.emoji[0] || '🥤')}</span><div class="under">${faceHTML(ctx, T.emoji[1] || '🙂', 'tokenpic')}</div></div>`).join('')}</div>
       <div class="side"><div class="kicker">Round</div><div class="stat round">1 of 3</div></div></div>`; },
     init(el, local, api, T) {
       const cups = [...el.querySelectorAll('.cup')]; const later = timers(local);
@@ -745,27 +746,28 @@ BB.MINI = {
 
   /* ---- count: a one-second flash of a crowd; how many? five rounds ---- */
   count: {
-    doText: (T) => `One second to count the ${T.noun}. Then pick the number.`,
+    doText: (T) => `Count the ${T.noun} before they vanish, then pick the number. One second, then two, then three.`,
     actions: () => CONTINUE,
-    build(T) { return `<div class="sidewrap"><div class="countfield"><div class="flashwrap"></div><div class="opts n4 countopts"></div></div><div class="side"><div class="kicker">Round</div><div class="stat round">1 of 5</div></div></div>`; },
+    build(T) { return `<div class="sidewrap"><div class="countfield"><div class="flashwrap"></div><div class="opts n4 countopts"></div></div><div class="side"><div class="kicker">Round</div><div class="stat round">1 of 3</div><div class="pairs secs">1 second</div></div></div>`; },
     init(el, local, api, T) {
       const wrap = el.querySelector('.flashwrap'), opts = el.querySelector('.countopts'); const later = timers(local);
       Object.assign(local, { round:0, phase:'wait' });
       const show = () => {
-        local.n = 5 + Math.floor(rnd(0, 4)) + local.round * 3; opts.innerHTML = ''; wrap.innerHTML = '';
+        const [lo, hi] = [[4, 9], [10, 20], [18, 40]][local.round];
+        local.n = lo + Math.floor(rnd(0, hi - lo + 1)); opts.innerHTML = ''; wrap.innerHTML = '';
         const W = wrap.clientWidth, H = wrap.clientHeight, pts = [];
         for (let i = 0; i < local.n; i++) { let p, tries = 0; do { p = [rnd(6, 94), rnd(8, 88)]; tries++; } while (tries < 40 && pts.some(q => Math.hypot(q[0] - p[0], (q[1] - p[1]) * H / W) < 7)); pts.push(p); wrap.insertAdjacentHTML('beforeend', `<span class="emo cnt" style="left:${p[0]}%;top:${p[1]}%">${esc(T.emoji[0] || '🧑')}</span>`); }
-        el.querySelector('.round').textContent = `${local.round + 1} of 5`; api.note('Look!'); local.phase = 'show';
+        el.querySelector('.round').textContent = `${local.round + 1} of 3`; el.querySelector('.secs').textContent = `${local.round + 1} second${local.round ? 's' : ''}`; api.note('Look!'); local.phase = 'show';
         later(() => {
           wrap.innerHTML = ''; local.phase = 'ask'; api.note('How many?');
-          const cands = new Set([local.n]); while (cands.size < 4) cands.add(clamp(local.n + Math.round(rnd(-4, 4)) || local.n + 1, 1, 99));
+          const spread = 2 + local.round * 3, cands = new Set([local.n]); while (cands.size < 4) { const v = local.n + Math.round(rnd(-spread, spread)); if (v >= 1 && v !== local.n) cands.add(v); }
           opts.innerHTML = shuffle([...cands]).map(v => `<button class="btn opt" data-action="guess" data-v="${v}" type="button"><span class="lbl">${v}</span></button>`).join('');
-        }, 1000);
+        }, 1000 * (local.round + 1));
       };
       later(show, 900); api.note(T.intro);
       local.guess = (v, btn) => {
         if (local.phase !== 'ask') return;
-        if (v === local.n) { Sound().chime(); local.round++; local.phase = 'wait'; if (local.round >= 5) { Sound().cheer(); Confetti().burst(140); api.finish(T.win); return; } api.note(T.lines[0]); later(show, 800); }
+        if (v === local.n) { Sound().chime(); local.round++; local.phase = 'wait'; if (local.round >= 3) { Sound().cheer(); Confetti().burst(140); api.finish(T.win); return; } api.note(T.lines[0]); later(show, 800); }
         else { Sound().wrong(); btn.disabled = true; btn.classList.add('wrong'); api.note(T.lines[1]); }
       };
     },

@@ -510,7 +510,9 @@ BB.start = function (rawParty, opts = {}) {
   party = BB.normalize(rawParty);
   if (opts.mini && BB.MINI[opts.mini]) {            /* ?mini=kind: try one game with its stock skin, straight away */
     const c = party.chapters[0], photo = party.heroPhoto;
-    c.mini = BB.normalize({ person: party.person, isms: party.isms, photos: party.photos, chapters: [{ mini: { kind: opts.mini, photo } }] }).chapters[0].mini;
+    const tmp = BB.normalize({ person: party.person, isms: party.isms, photos: party.photos, heroPhoto: photo, chapters: [{ mini: { kind: opts.mini, photo } }] });
+    c.mini = tmp.chapters[0].mini;
+    if (!party.heroPhoto) { party.photos._face = BB.PLACEHOLDER_FACE; party.heroPhoto = '_face'; }   /* try-it links on a photo-less party still show a face */
     if (!opts.screen) opts.screen = 'c1-mini';
   }
   screens = buildScreens(party);
